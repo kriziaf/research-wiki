@@ -1,6 +1,6 @@
 # Phase 1 Plan — Civic Tech Research Portal
 
-Status: **v0.3.0 built** (Related articles + Recent search history on top of the v0.2.0 Conversational Ask flow and MVP1's Search, Retrieve, View Article) — in its own repo as of 2026-10-10. Ingest/Analyze not yet scoped to implementation detail.
+Status: **v0.4.0 built** (Conversational answer preview + related follow-up topics, on top of v0.3.0's Related articles/Recent search history and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Ingest/Analyze not yet scoped to implementation detail.
 
 ## Source
 
@@ -103,5 +103,13 @@ Two follow-on refinements to the v0.2.0 Ask flow, both built from a real referen
 
 - **Related articles**: the dormant MVP1 results-list screen (`rw-screen-results`, flagged above as "unreachable but kept") is no longer dead code — it's repurposed as a **"View related articles"** destination reached from a new button at the bottom of the full article view. `findRelated(doc)` scores every other doc by shared-tag count (+1 for same `type`), no new data needed since tags are already real/topical. `showRelated`/`renderRelated` push a `{screen:'related', id}` stack entry so Back correctly chains related-list → article → wherever the article was opened from (ask screen or another related list). The screen's old "← New search" (full stack reset) became "← Back" (`goBack()`), since it's now only ever entered contextually from an article, never from home.
 - **Recent search history**: a "Recent" section now renders on the home screen directly below "Recommended" (reversed from the reference screenshot's order, per explicit direction), hidden until at least one question has been asked. Backed by `localStorage` (`rw-recent-queries`), capped at 3, de-duped case-insensitively, each entry dismissible with an × without triggering the query. Every submitted question — home search, a Recommended chip, or a follow-up — logs to Recent via `addRecent()` inside `askQuery()`. Styled with a bordered `.rw-chip.recent` variant built from the same `--rw-*` tokens as everything else, distinguishing it from Recommended's filled chip per `DESIGN_STYLE_GUIDE.md`'s own Recent-vs-Recommended component spec.
+
+Files touched: `index.html`, `research.css`, `research.js`.
+
+## v0.4.0 — Conversational Answer Preview + Follow-up Topics, Footer (2026-10-10)
+
+- **Shortened, conversational answers**: `renderAsk()`'s answer body no longer dumps the full matched doc — a new `previewParagraphs(body, count)` walks the markdown line-by-line (reusing the same tokenizing rules as `renderMarkdown`) but skips headings/list items, collecting only the first 2 plain-prose paragraphs ("the description + the next paragraph"). Falls back to the existing `snippet()` helper for the rare doc with no lead prose. A `Continue reading "<title>" →` link under the preview opens the full article (`openArticle`), same call the Sources-chip preview already used.
+- **3 related follow-up topics**: below the preview, up to 3 tag-related docs (reusing `findRelated()` from v0.3.0 — no new scoring logic) render as pill suggestion chips, phrased "What is X?" / "Who is X?" per `design-system-demo.html`'s own Recommended-chip convention (`topicQuestion()`). Clicking one calls `askQuery(question, false)` — a follow-up turn appended to the conversation, same as typing in the follow-up box.
+- **Footer**: a subtle footer (`.rw-footer`) now runs along the bottom of every screen — "Created for Open Civic Tech" linking to opencivic.tech, and "Research Wiki Chat v`APP_VERSION`" on the right. `APP_VERSION` is a single constant at the top of `research.js`; bump it there when tagging a new version and the footer updates everywhere with no HTML changes.
 
 Files touched: `index.html`, `research.css`, `research.js`.

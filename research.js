@@ -6,6 +6,10 @@
    ============================================================ */
 
 (function () {
+  // Single source of truth for the footer's "Research Wiki Chat vX.Y.Z" label.
+  // Bump this when PHASE1_PLAN.md records a new version — nothing else to touch.
+  var APP_VERSION = '0.4.0';
+
   var DOCS = window.WIKI_INDEX || [];
   var titleIndex = {};
   DOCS.forEach(function (d) { titleIndex[d.title.toLowerCase()] = d; });
@@ -49,6 +53,27 @@
       .sort(function (a, b) { return b.score - a.score; })
       .slice(0, 25)
       .map(function (s) { return s.doc; });
+  }
+
+  function previewParagraphs(body, count) {
+    var stripped = body.replace(/^#\s+.+\n+/, '');
+    var lines = stripped.split(/\r?\n/);
+    var paras = [];
+    var buffer = [];
+    function flush() {
+      if (buffer.length) { paras.push(buffer.join(' ')); buffer = []; }
+    }
+    for (var i = 0; i < lines.length && paras.length < count; i++) {
+      var line = lines[i];
+      if (/^(#{2,4})\s+/.test(line) || /^[-*]\s+/.test(line) || /^\d+\.\s+/.test(line)) {
+        flush();
+        continue;
+      }
+      if (line.trim() === '') { flush(); continue; }
+      buffer.push(line.trim());
+    }
+    flush();
+    return paras.slice(0, count);
   }
 
   function snippet(doc, len) {
@@ -270,16 +295,25 @@
     showScreen('ask');
   }
 
+  function topicQuestion(doc) {
+    if (/^(what|who|how|why|where|when|which)\b/i.test(doc.title)) return doc.title;
+    return (doc.type === 'entity' ? 'Who is ' : 'What is ') + doc.title + '?';
+  }
+
   function renderAsk(query, results) {
     closeAskPane();
     el('rw-ask-question').textContent = query;
     var top = results[0];
     var sourcesChip = el('rw-ask-sources');
     var body = el('rw-ask-body');
+    var continueBtn = el('rw-ask-continue');
+    var topicsRow = el('rw-ask-followup-topics');
 
     if (!top) {
       sourcesChip.style.display = 'none';
       body.innerHTML = '<p class="rw-empty-inline">No matches in the wiki yet. Try a different term, or one of the type names: concept, entity, project.</p>';
+      continueBtn.textContent = '';
+      topicsRow.innerHTML = '';
       return;
     }
 
@@ -297,9 +331,24 @@
       '<svg class="rw-sources-chip-chevron" width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 5l5 5-5 5"/></svg>';
     sourcesChip.onclick = function () { openAskPreview(top.id); };
 
-    body.innerHTML = renderMarkdown(top.body);
+    var preview = previewParagraphs(top.body, 2);
+    if (!preview.length) preview = [snippet(top, 240)];
+    body.innerHTML = preview.map(function (p) { return '<p>' + renderInline(p) + '</p>'; }).join('');
     body.querySelectorAll('.wikilink').forEach(function (btn) {
       btn.addEventListener('click', function () { openAskPreview(btn.dataset.id); });
+    });
+
+    continueBtn.textContent = 'Continue reading "' + top.title + '" →';
+    continueBtn.onclick = function () { openArticle(top.id, true); };
+
+    var topics = findRelated(top).slice(0, 3);
+    topicsRow.innerHTML = topics.map(function (d) {
+      return '<button type="button" class="rw-suggestion-chip" data-topic="' + d.id + '">' + escapeHtml(topicQuestion(d)) + '</button>';
+    }).join('');
+    topicsRow.querySelectorAll('[data-topic]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        askQuery(topicQuestion(docById[btn.dataset.topic]), false);
+      });
     });
   }
 
@@ -390,6 +439,7 @@
 
   function wire() {
     el('rw-doc-count').textContent = DOCS.length + ' documents indexed';
+    el('rw-footer-version').textContent = 'Research Wiki Chat v' + APP_VERSION;
     renderTryChips();
     renderRecentChips();
 
