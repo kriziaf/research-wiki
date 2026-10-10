@@ -8,7 +8,7 @@
 (function () {
   // Single source of truth for the footer's "Research Wiki Chat vX.Y.Z" label.
   // Bump this when spec/PHASE1_PLAN.md records a new version — nothing else to touch.
-  var APP_VERSION = '0.4.1';
+  var APP_VERSION = '0.4.2';
 
   var DOCS = window.WIKI_INDEX || [];
   var titleIndex = {};

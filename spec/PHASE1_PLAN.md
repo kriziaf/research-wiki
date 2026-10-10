@@ -1,6 +1,6 @@
 # Phase 1 Plan — Civic Tech Research Portal
 
-Status: **Phase 1 complete as of v0.4.1** (Curated Recommended topics + a pinned-answer fix for the search scorer, on top of v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
+Status: **Phase 1 complete as of v0.4.2** (Curated Recommended topics + a pinned-answer fix for the search scorer, on top of v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
 
 ## Source
 
@@ -112,4 +112,15 @@ Files touched: `index.html`, `research.css`, `research.js`.
 - **Pinned-answer correctness fix**: verifying the above surfaced a real bug — phrased questions like "Who is BetaNYC?" don't reliably rank their target doc first in the keyword `search()` scorer (common words like "who"/"is"/"the" dilute the score toward unrelated, longer docs; 3 of the 6 curated topics mis-resolved). This also silently affected the v0.4.0 follow-up-topic suggestion chips (same "What is X?"/"Who is X?" phrasing). Fixed generally: `askQuery(query, fresh, pinnedId)` gained an optional third argument; `buildAskResults(query, pinnedId)` pins the known target doc as the top answer while still running real search to populate the Sources chip around it. Back-navigation stack entries now also store `pinnedId` so re-rendering an earlier turn restores the same pinned doc. Verified all 6 Recommended topics and the follow-up-topic chips now resolve to the correct doc.
 
 Files touched: `research.js`.
+
+## v0.4.2 — Header Nav Bar (2026-10-10)
+
+Pulled the topbar pattern from `spec/design-system-demo.html` and adapted it per explicit scope direction (minimal/functional, not full demo fidelity): the previously bare `.rw-topbar` (wordmark + doc count only) now has left/right groups —
+
+- **Left**: a hamburger menu icon (`#rw-menu-btn`) — intentionally non-functional for now, a visual placeholder matching the demo's pattern — plus the existing wordmark.
+- **Right**: the existing doc count, a new "Open Civic Tech" text link to opencivic.tech, and an avatar placeholder button (`#rw-avatar`) — styled with a dashed border specifically so it reads as inactive rather than a real signed-in state. It's a stub for the Clerk-based login planned in `spec/PHASE2_PLAN.md`, not working auth.
+- The footer's own "Created for Open Civic Tech" link + version line is **unchanged** (explicit user instruction to keep it as-is) — the link now simply appears in both places rather than being moved.
+- Right-side items (doc count, link) hide under 480px to keep the topbar from crowding on narrow screens; hamburger, wordmark, and avatar stay visible.
+
+Files touched: `index.html`, `research.css`, `research.js`.
 
