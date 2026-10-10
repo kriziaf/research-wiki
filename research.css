@@ -73,6 +73,7 @@
 .rw-icon-btn:hover{ background:var(--rw-surface-2); }
 
 .rw-topbar-link{
+  border:none; background:none; padding:0; font:inherit; cursor:pointer;
   font-size:0.78rem; color:var(--rw-muted-2); text-decoration:none;
 }
 .rw-topbar-link:hover{ color:var(--rw-muted); text-decoration:underline; text-decoration-color:var(--rw-line-strong); }

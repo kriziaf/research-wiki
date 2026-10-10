@@ -118,8 +118,8 @@ Files touched: `research.js`.
 Pulled the topbar pattern from `spec/design-system-demo.html` and adapted it per explicit scope direction (minimal/functional, not full demo fidelity): the previously bare `.rw-topbar` (wordmark + doc count only) now has left/right groups —
 
 - **Left**: a hamburger menu icon (`#rw-menu-btn`) — intentionally non-functional for now, a visual placeholder matching the demo's pattern — plus the existing wordmark.
-- **Right**: the existing doc count, a new "Open Civic Tech" text link to opencivic.tech, and an avatar placeholder button (`#rw-avatar`) — styled with a dashed border specifically so it reads as inactive rather than a real signed-in state. It's a stub for the Clerk-based login planned in `spec/PHASE2_PLAN.md`, not working auth.
-- The footer's own "Created for Open Civic Tech" link + version line is **unchanged** (explicit user instruction to keep it as-is) — the link now simply appears in both places rather than being moved.
+- **Right**: the existing doc count, a "Log in" button (`#rw-login-btn`, updated from an initial "Open Civic Tech" link), and an avatar placeholder button (`#rw-avatar`) — both are non-functional stubs for the Clerk-based login planned in `spec/PHASE2_PLAN.md`, styled/titled as "coming soon" rather than a real signed-in state.
+- The footer's own "Created for Open Civic Tech" link + version line is **unchanged** (explicit user instruction to keep it as-is).
 - Right-side items (doc count, link) hide under 480px to keep the topbar from crowding on narrow screens; hamburger, wordmark, and avatar stay visible.
 
 Files touched: `index.html`, `research.css`, `research.js`.
