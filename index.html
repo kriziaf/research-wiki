@@ -25,6 +25,7 @@
                     <div class="rw-menu-dropdown" id="rw-menu-dropdown">
                         <button type="button" class="rw-menu-item" data-menu-action="home">Ask Wiki</button>
                         <button type="button" class="rw-menu-item" data-menu-action="topics">Search Topics</button>
+                        <button type="button" class="rw-menu-item" data-menu-action="ingest-log">Ingest Log</button>
                         <div class="rw-menu-divider"></div>
                         <button type="button" class="rw-menu-item" data-menu-action="login" title="Sign in — coming soon">Log in</button>
                     </div>
@@ -58,6 +59,22 @@
                         <div class="rw-topic-pills" id="rw-topic-pills"></div>
 
                         <div class="rw-topic-grid" id="rw-topic-grid"></div>
+                    </div>
+                </section>
+
+                <!-- ===== ingest log screen ===== -->
+                <section class="rw-screen rw-screen-ingest-log">
+                    <div class="rw-article-subbar">
+                        <button class="rw-back" id="rw-ingest-log-back" type="button">
+                            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 4.5L6 10l6.5 5.5"/></svg>
+                            Back
+                        </button>
+                    </div>
+
+                    <div class="rw-log-col">
+                        <h2 class="rw-log-title">Ingest Log</h2>
+                        <p class="rw-log-summary" id="rw-log-summary"></p>
+                        <div class="rw-log-list" id="rw-log-list"></div>
                     </div>
                 </section>
 
@@ -179,6 +196,7 @@
     </div>
 
     <script src="data/wiki-index.js"></script>
+    <script src="data/ingest-log.js"></script>
     <script src="research.js"></script>
 </body>
 </html>

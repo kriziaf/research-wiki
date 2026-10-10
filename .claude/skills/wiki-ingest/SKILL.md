@@ -71,4 +71,6 @@ URL ingestion (the spec's `defuddle` reference) isn't implemented here — this 
 
 ## Step 9 — Offer to refresh the deployed app's corpus
 
-If this repo has `scripts/snapshot-wiki.mjs`, after a successful write, offer (don't auto-run) `node scripts/snapshot-wiki.mjs` so the newly ingested page becomes searchable in the deployed Smol Wiki app's `data/wiki-index.js`. That script also reads `vaultRoot` from the same `.claude/wiki-ingest.local.json`, so no path duplication.
+After a successful write, offer (don't auto-run) both snapshot scripts — they read `vaultRoot` from the same `.claude/wiki-ingest.local.json`, so no path duplication:
+- `node scripts/snapshot-wiki.mjs` — so the newly ingested page becomes searchable in the deployed Smol Wiki app's `data/wiki-index.js`.
+- `node scripts/snapshot-ingest-log.mjs` — so the ingest shows up on the app's "Ingest Log" page (`data/ingest-log.js`), grouped by date.

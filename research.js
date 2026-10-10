@@ -8,7 +8,7 @@
 (function () {
   // Single source of truth for the footer's "Smol Wiki Chat vX.Y.Z" label.
   // Bump this when spec/PHASE1_PLAN.md records a new version — nothing else to touch.
-  var APP_VERSION = '0.5.2';
+  var APP_VERSION = '0.5.3';
 
   var DOCS = window.WIKI_INDEX || [];
   var titleIndex = {};
@@ -280,6 +280,45 @@
     showScreen('topics');
   }
 
+  /* ---------------- ingest log ---------------- */
+
+  function renderIngestLog() {
+    var log = window.INGEST_LOG || [];
+    var totalArticles = log.reduce(function (n, e) { return n + e.articles.length; }, 0);
+    el('rw-log-summary').textContent = totalArticles + ' article' + (totalArticles === 1 ? '' : 's') +
+      ' processed across ' + log.length + ' day' + (log.length === 1 ? '' : 's');
+
+    var list = el('rw-log-list');
+    if (!log.length) {
+      list.innerHTML = '<div class="rw-empty"><strong>No ingest activity yet</strong>Articles processed via wiki-ingest will show up here.</div>';
+      return;
+    }
+    list.innerHTML = log.map(function (entry, i) {
+      var parts = entry.date.split('-');
+      var stamped = parts.length === 3 ? parts[1] + '.' + parts[2] + '.' + parts[0] : entry.date;
+      return '<div class="rw-log-entry" data-entry="' + i + '">' +
+        '<button type="button" class="rw-log-entry-head">' +
+        '<span class="rw-log-date">' + escapeHtml(stamped) + '</span>' +
+        '<span class="rw-log-count">' + entry.articles.length + ' article' + (entry.articles.length === 1 ? '' : 's') + ' processed</span>' +
+        '<svg class="rw-log-chevron" width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 5l5 5-5 5"/></svg>' +
+        '</button>' +
+        '<div class="rw-log-entry-body">' +
+        entry.articles.map(function (title) { return '<div class="rw-log-article">' + escapeHtml(title) + '</div>'; }).join('') +
+        '</div></div>';
+    }).join('');
+    list.querySelectorAll('.rw-log-entry-head').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        btn.closest('.rw-log-entry').classList.toggle('open');
+      });
+    });
+  }
+
+  function showIngestLog() {
+    stack = [{ screen: 'ingest-log' }];
+    renderIngestLog();
+    showScreen('ingest-log');
+  }
+
   function renderResultCard(d) {
     return '<button type="button" class="rw-result-card" data-open="' + d.id + '">' +
       '<div class="rw-result-top"><span class="rw-type-dot ' + d.type + '"></span><span class="rw-result-type">' + d.type + ' · ' + d.id + '.md</span></div>' +
@@ -510,6 +549,9 @@
       renderTopicPills();
       renderTopicGrid();
       showScreen('topics');
+    } else if (prev.screen === 'ingest-log') {
+      renderIngestLog();
+      showScreen('ingest-log');
     } else if (prev.screen === 'related') {
       var relatedDoc = docById[prev.id];
       renderRelated(relatedDoc, findRelated(relatedDoc));
@@ -555,11 +597,14 @@
           el('rw-input').focus();
         } else if (action === 'topics') {
           showTopics();
+        } else if (action === 'ingest-log') {
+          showIngestLog();
         }
         // 'login' is an inert stub, same as #rw-login-btn — menu just closes.
       });
     });
     el('rw-topics-back').addEventListener('click', goBack);
+    el('rw-ingest-log-back').addEventListener('click', goBack);
     el('rw-topics-search-input').addEventListener('input', function (e) {
       topicSearchQuery = e.target.value;
       renderTopicGrid();

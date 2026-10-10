@@ -114,6 +114,7 @@
 
 .rw-screen{ display:none; }
 #research-app[data-screen="topics"] .rw-screen-topics{ display:block; }
+#research-app[data-screen="ingest-log"] .rw-screen-ingest-log{ display:block; }
 #research-app[data-screen="search"] .rw-screen-search{ display:block; }
 #research-app[data-screen="ask"] .rw-screen-ask{ display:block; }
 #research-app[data-screen="related"] .rw-screen-results{ display:block; }
@@ -149,6 +150,29 @@
 @media (max-width:860px){ .rw-topic-grid{ grid-template-columns:repeat(2,1fr); } }
 @media (max-width:560px){ .rw-topic-grid{ grid-template-columns:1fr; } }
 .rw-topic-grid .rw-empty{ grid-column:1 / -1; }
+
+/* ---------- ingest log screen ---------- */
+.rw-screen-ingest-log{ padding:20px 20px 48px; }
+.rw-log-col{ max-width:680px; margin:0 auto; width:100%; }
+.rw-log-title{ font-size:1.4rem; margin-bottom:6px; }
+.rw-log-summary{ font-size:0.85rem; color:var(--rw-muted); margin-bottom:24px; }
+.rw-log-list{ display:flex; flex-direction:column; gap:10px; }
+
+.rw-log-entry{ background:var(--rw-surface); border:1px solid var(--rw-line); border-radius:12px; overflow:hidden; }
+.rw-log-entry-head{
+  display:flex; align-items:center; gap:10px; width:100%; padding:14px 18px;
+  background:none; border:none; cursor:pointer; text-align:left; font:inherit; color:inherit;
+}
+.rw-log-entry-head:hover{ background:var(--rw-surface-2); }
+.rw-log-date{ font-family:var(--rw-font-mono); font-size:0.85rem; font-weight:600; }
+.rw-log-count{ font-size:0.8rem; color:var(--rw-muted); flex:1; }
+.rw-log-chevron{ flex:none; color:var(--rw-muted-2); transition:transform 150ms ease; }
+.rw-log-entry.open .rw-log-chevron{ transform:rotate(90deg); }
+
+.rw-log-entry-body{ display:none; padding:0 18px 14px; }
+.rw-log-entry.open .rw-log-entry-body{ display:block; }
+.rw-log-article{ font-size:0.86rem; color:var(--rw-ink); padding:8px 0; border-top:1px solid var(--rw-line); }
+.rw-log-article:first-child{ border-top:none; }
 
 /* ---------- search screen ---------- */
 .rw-screen-search{ padding:64px 20px 48px; }

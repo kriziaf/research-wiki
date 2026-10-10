@@ -1,6 +1,6 @@
 # Phase 1 Plan — Civic Tech Research Portal
 
-Status: **Phase 1 complete as of v0.5.2** (Curated Recommended topics + a pinned-answer fix for the search scorer, on top of v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
+Status: **Phase 1 complete as of v0.5.3** (Curated Recommended topics + a pinned-answer fix for the search scorer, on top of v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
 
 ## Source
 
@@ -163,4 +163,14 @@ App renamed from "Research Wiki" to "Smol Wiki" throughout the live product: bro
 **Deliberately left untouched**: `spec/design-system-demo.html` — explicitly a frozen historical mockup (per its own documented status as "the original interactive mockup... superseded by the real app"), not live product; retroactively renaming it would misrepresent what was actually approved under that name at the time. Also untouched: the actual GitHub repository name (`kriziaf/research-wiki`) — a platform-level rename, not a text edit, left for the user to action separately if wanted.
 
 Files touched: `index.html`, `research.css`, `research.js`, `README.md`, `.claude/skills/wiki-ingest/SKILL.md`.
+
+## v0.5.3 — Ingest Log (2026-10-10)
+
+New sub-nav page (hamburger menu, between "Search Topics" and the Log-in divider) showing wiki-ingest activity as a date-stamped, collapsible timeline — "so I know... the number of articles added to wiki."
+
+- **New data snapshot**: `scripts/snapshot-ingest-log.mjs`, a sibling to `scripts/snapshot-wiki.mjs` (same config/portability pattern — reads `vaultRoot` from the gitignored `.claude/wiki-ingest.local.json`, no hardcoded path). Scans `vaultRoot/raw/clippings/*.md`, groups by date (`created:` frontmatter, filesystem mtime fallback for the files missing it — 9 of 30 in the real corpus), writes `data/ingest-log.js` sorted newest-first. Real result: 30 articles across 8 distinct ingest days, from 1 to 17 articles in a day.
+- **UI**: each date row (formatted `MM.DD.YYYY`, matching the vault's own `inbox/10.10.2026/`-style folder convention rather than the app's internal `YYYY-MM-DD`) is collapsed by default — date + article count only — and expands on click to list that day's article titles. A summary line up top gives the running total (articles processed / days active). Entries aren't individually clickable — raw clippings have no corresponding viewer screen in this app, so the list stays plain text rather than implying a dead link.
+- **`wiki-ingest` skill updated**: Step 9 now offers regenerating both snapshots (`snapshot-wiki.mjs` and `snapshot-ingest-log.mjs`) after a write, not just the wiki corpus one.
+
+Files touched: `index.html`, `research.css`, `research.js`, `scripts/snapshot-ingest-log.mjs` (new), `data/ingest-log.js` (new), `.claude/skills/wiki-ingest/SKILL.md`.
 
