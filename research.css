@@ -100,10 +100,42 @@
 .rw-footer-version{ font-family:var(--rw-font-mono); font-variant-numeric:tabular-nums; }
 
 .rw-screen{ display:none; }
+#research-app[data-screen="topics"] .rw-screen-topics{ display:block; }
 #research-app[data-screen="search"] .rw-screen-search{ display:block; }
 #research-app[data-screen="ask"] .rw-screen-ask{ display:block; }
 #research-app[data-screen="related"] .rw-screen-results{ display:block; }
 #research-app[data-screen="article"] .rw-screen-article{ display:block; }
+
+/* ---------- topics (browse by tag) screen ---------- */
+.rw-screen-topics{ padding:8px 20px 0; }
+.rw-topics-col{ max-width:960px; margin:0 auto; width:100%; padding-bottom:48px; }
+
+.rw-topics-search{
+  display:flex; align-items:center; gap:10px;
+  background:var(--rw-surface-2); border:1.5px solid transparent; border-radius:999px;
+  padding:12px 18px; margin-bottom:20px; transition:border-color 120ms ease;
+}
+.rw-topics-search:focus-within{ border-color:var(--rw-focus); background:var(--rw-surface); }
+.rw-topics-search svg{ flex:none; color:var(--rw-muted-2); }
+.rw-topics-search input{
+  flex:1; border:none; background:transparent; outline:none; color:var(--rw-ink);
+  font-size:0.92rem; font-family:var(--rw-font-body);
+}
+.rw-topics-search input::placeholder{ color:var(--rw-muted-2); }
+
+.rw-topic-pills{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:28px; }
+.rw-topic-pill{
+  padding:9px 16px; border-radius:999px; border:1px solid var(--rw-line);
+  background:var(--rw-surface); color:var(--rw-muted); font-size:0.82rem; cursor:pointer;
+}
+.rw-topic-pill:hover{ border-color:var(--rw-line-strong); color:var(--rw-ink); }
+.rw-topic-pill.active{ background:var(--rw-accent); border-color:var(--rw-accent); color:var(--rw-surface); }
+
+.rw-topic-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+.rw-topic-grid .rw-result-card{ margin-bottom:0; height:100%; }
+@media (max-width:860px){ .rw-topic-grid{ grid-template-columns:repeat(2,1fr); } }
+@media (max-width:560px){ .rw-topic-grid{ grid-template-columns:1fr; } }
+.rw-topic-grid .rw-empty{ grid-column:1 / -1; }
 
 /* ---------- search screen ---------- */
 .rw-screen-search{ padding:64px 20px 48px; }

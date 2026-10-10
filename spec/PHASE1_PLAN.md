@@ -1,6 +1,6 @@
 # Phase 1 Plan — Civic Tech Research Portal
 
-Status: **Phase 1 complete as of v0.4.2** (Curated Recommended topics + a pinned-answer fix for the search scorer, on top of v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
+Status: **Phase 1 complete as of v0.5.0** (Curated Recommended topics + a pinned-answer fix for the search scorer, on top of v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
 
 ## Source
 
@@ -121,6 +121,28 @@ Pulled the topbar pattern from `spec/design-system-demo.html` and adapted it per
 - **Right**: the existing doc count, a "Log in" button (`#rw-login-btn`, updated from an initial "Open Civic Tech" link), and an avatar placeholder button (`#rw-avatar`) — both are non-functional stubs for the Clerk-based login planned in `spec/PHASE2_PLAN.md`, styled/titled as "coming soon" rather than a real signed-in state.
 - The footer's own "Created for Open Civic Tech" link + version line is **unchanged** (explicit user instruction to keep it as-is).
 - Right-side items (doc count, link) hide under 480px to keep the topbar from crowding on narrow screens; hamburger, wordmark, and avatar stay visible.
+
+Files touched: `index.html`, `research.css`, `research.js`.
+
+## v0.4.3 — Typography (2026-10-10)
+
+**Retroactive entry** — this shipped as two commits (`26df3c0`, `f0482a2`) without a spec section or `APP_VERSION` bump at the time; recording it now while adding v0.5.0 below, rather than leaving the gap.
+
+- **Body/UI font → Source Sans Pro**, loaded via Google Fonts (`Source Sans 3`, its current distribution name) with a preconnect + stylesheet link in `index.html`; `--rw-font-body` falls back to the prior system sans stack if the web font fails. Weights: 400, 400 italic, 600, 700.
+- **Heading font → Space Grotesk** (weight 700), replacing the serif `Iowan Old Style` — an explicit reversal of the design guide's original "deliberately not Inter/Space Grotesk" call, noted inline in `spec/DESIGN_STYLE_GUIDE.md` rather than silently overwritten.
+- **Article paragraph-spacing bug fixed**: `.rw-body p` had `margin-bottom:14px` against a `line-height:1.65` (~25px) — paragraphs were gapped *tighter* than their own internal line spacing. `margin-bottom` now matches `line-height` exactly (`1.65em`); heading top-margins moved to proportional `em` values for the same reason.
+
+Files touched: `index.html`, `research.css`, `spec/DESIGN_STYLE_GUIDE.md`.
+
+## v0.5.0 — Topics Page (browse by tag) (2026-10-10)
+
+New top-level screen reachable via the header's hamburger icon (`#rw-menu-btn`, previously a non-functional placeholder from v0.4.2 — now labeled "Browse topics"), for exploring the corpus by tag instead of only via search/ask.
+
+- **Search input** — live-filters the grid by title or tag substring as you type (`topicSearchQuery`), no Enter required.
+- **Tag pills** — single-select filter row plus an "All" reset. Capped to the **top 20 tags by frequency** (`TOPIC_PILL_LIMIT`), not every tag: the corpus has 196 unique tags, but 126 of them appear on exactly one document — true one-offs that would clutter a pill row without adding real browsing value. Those long-tail tags stay reachable through the search input, just not as a dedicated pill. Sort is data-driven (frequency desc, then alphabetical), not hardcoded — grows correctly as the corpus does.
+- **Card grid** — reuses the existing `.rw-result-card` component and a newly-factored `renderResultCard(d)` helper (previously inlined only in `renderRelated`, now shared) rather than introducing a new card design; responsive 3→2→1 column grid.
+- Fully integrated into the existing navigation stack: entering via the hamburger resets to a fresh `{screen:'topics'}` stack entry (same `fresh` pattern as `askQuery`), opening a card pushes an `article` entry on top of it, and `goBack()` correctly restores the topics screen (filter/search state preserved, since it lives in module-level vars, not the stack entry) when backing out of an article.
+- Adapted from a reference UI screenshot per the session's established pattern: reused this app's own card/pill/chip components and `--rw-*` tokens rather than copying the reference's literal visual styling (navy active-pill color, icon treatment, separate "Read the topic →" link text — the whole card is already clickable here, matching every other card in the app, so that link was dropped as redundant).
 
 Files touched: `index.html`, `research.css`, `research.js`.
 

@@ -8,7 +8,7 @@
 (function () {
   // Single source of truth for the footer's "Research Wiki Chat vX.Y.Z" label.
   // Bump this when spec/PHASE1_PLAN.md records a new version — nothing else to touch.
-  var APP_VERSION = '0.4.2';
+  var APP_VERSION = '0.5.0';
 
   var DOCS = window.WIKI_INDEX || [];
   var titleIndex = {};
@@ -212,6 +212,83 @@
     showScreen('related');
   }
 
+  /* ---------------- topics (browse by tag) ---------------- */
+
+  var topicFilter = null;
+  var topicSearchQuery = '';
+
+  function tagCounts() {
+    var counts = {};
+    DOCS.forEach(function (d) {
+      d.tags.forEach(function (t) { counts[t] = (counts[t] || 0) + 1; });
+    });
+    return counts;
+  }
+
+  function matchesTopicFilters(d) {
+    if (topicFilter && d.tags.indexOf(topicFilter) === -1) return false;
+    if (topicSearchQuery) {
+      var q = topicSearchQuery.toLowerCase();
+      var inTitle = d.title.toLowerCase().indexOf(q) !== -1;
+      var inTags = d.tags.some(function (t) { return t.toLowerCase().indexOf(q) !== -1; });
+      if (!inTitle && !inTags) return false;
+    }
+    return true;
+  }
+
+  var TOPIC_PILL_LIMIT = 20;
+
+  function renderTopicPills() {
+    var counts = tagCounts();
+    var tags = Object.keys(counts).sort(function (a, b) {
+      return counts[b] - counts[a] || a.localeCompare(b);
+    }).slice(0, TOPIC_PILL_LIMIT);
+    var wrap = el('rw-topic-pills');
+    var allBtn = '<button type="button" class="rw-topic-pill' + (topicFilter ? '' : ' active') + '" data-tag="">All</button>';
+    wrap.innerHTML = allBtn + tags.map(function (t) {
+      return '<button type="button" class="rw-topic-pill' + (topicFilter === t ? ' active' : '') + '" data-tag="' + escapeHtml(t) + '">#' + escapeHtml(t) + '</button>';
+    }).join('');
+    wrap.querySelectorAll('[data-tag]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        topicFilter = btn.dataset.tag || null;
+        renderTopicPills();
+        renderTopicGrid();
+      });
+    });
+  }
+
+  function renderTopicGrid() {
+    var matches = DOCS.filter(matchesTopicFilters);
+    var grid = el('rw-topic-grid');
+    if (!matches.length) {
+      grid.innerHTML = '<div class="rw-empty"><strong>No topics match</strong>Try a different tag or search term.</div>';
+      return;
+    }
+    grid.innerHTML = matches.map(renderResultCard).join('');
+    grid.querySelectorAll('[data-open]').forEach(function (btn) {
+      btn.addEventListener('click', function () { openArticle(btn.dataset.open, true); });
+    });
+  }
+
+  function showTopics() {
+    stack = [{ screen: 'topics' }];
+    topicFilter = null;
+    topicSearchQuery = '';
+    el('rw-topics-search-input').value = '';
+    renderTopicPills();
+    renderTopicGrid();
+    showScreen('topics');
+  }
+
+  function renderResultCard(d) {
+    return '<button type="button" class="rw-result-card" data-open="' + d.id + '">' +
+      '<div class="rw-result-top"><span class="rw-type-dot ' + d.type + '"></span><span class="rw-result-type">' + d.type + ' · ' + d.id + '.md</span></div>' +
+      '<div class="rw-result-title">' + escapeHtml(d.title) + '</div>' +
+      '<div class="rw-result-snippet">' + escapeHtml(snippet(d, 150)) + '</div>' +
+      '<div class="rw-result-tags">' + d.tags.map(function (t) { return '<span class="rw-tag">' + escapeHtml(t) + '</span>'; }).join('') + '</div>' +
+      '</button>';
+  }
+
   function renderRelated(doc, related) {
     el('rw-results-query').textContent = 'Related to "' + doc.title + '"';
     el('rw-results-count').textContent = related.length + ' related article' + (related.length === 1 ? '' : 's');
@@ -220,14 +297,7 @@
       list.innerHTML = '<div class="rw-empty"><strong>No related articles</strong>No other documents share tags with this one yet.</div>';
       return;
     }
-    list.innerHTML = related.map(function (d) {
-      return '<button type="button" class="rw-result-card" data-open="' + d.id + '">' +
-        '<div class="rw-result-top"><span class="rw-type-dot ' + d.type + '"></span><span class="rw-result-type">' + d.type + ' · ' + d.id + '.md</span></div>' +
-        '<div class="rw-result-title">' + escapeHtml(d.title) + '</div>' +
-        '<div class="rw-result-snippet">' + escapeHtml(snippet(d, 150)) + '</div>' +
-        '<div class="rw-result-tags">' + d.tags.map(function (t) { return '<span class="rw-tag">' + escapeHtml(t) + '</span>'; }).join('') + '</div>' +
-        '</button>';
-    }).join('');
+    list.innerHTML = related.map(renderResultCard).join('');
     list.querySelectorAll('[data-open]').forEach(function (btn) {
       btn.addEventListener('click', function () { openArticle(btn.dataset.open, true); });
     });
@@ -436,7 +506,11 @@
     stack.pop();
     var prev = stack[stack.length - 1];
     if (!prev) { showScreen('search'); return; }
-    if (prev.screen === 'related') {
+    if (prev.screen === 'topics') {
+      renderTopicPills();
+      renderTopicGrid();
+      showScreen('topics');
+    } else if (prev.screen === 'related') {
       var relatedDoc = docById[prev.id];
       renderRelated(relatedDoc, findRelated(relatedDoc));
       showScreen('related');
@@ -459,6 +533,12 @@
     el('rw-send').addEventListener('click', function () { askQuery(el('rw-input').value, true); });
     el('rw-input').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') askQuery(e.target.value, true);
+    });
+    el('rw-menu-btn').addEventListener('click', showTopics);
+    el('rw-topics-back').addEventListener('click', goBack);
+    el('rw-topics-search-input').addEventListener('input', function (e) {
+      topicSearchQuery = e.target.value;
+      renderTopicGrid();
     });
     el('rw-related-back').addEventListener('click', goBack);
     el('rw-back').addEventListener('click', goBack);
