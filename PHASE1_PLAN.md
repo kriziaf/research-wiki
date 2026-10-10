@@ -1,6 +1,6 @@
 # Phase 1 Plan — Civic Tech Research Portal
 
-Status: **v0.4.1 built** (Curated Recommended topics + a pinned-answer fix for the search scorer, on top of v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Ingest/Analyze not yet scoped to implementation detail.
+Status: **Phase 1 complete as of v0.4.1** (Curated Recommended topics + a pinned-answer fix for the search scorer, on top of v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
 
 ## Source
 
@@ -58,17 +58,9 @@ Researcher Portal
    - One consistent shape — no normalization step needed, unlike the old two-note-type problem from the raw vault.
 3. **Topic categorization** — solved by existing data: `type` and `tags` in frontmatter are already real and topical, maintained by the wiki agent. "Auto-Detect or Assign Topic Category" can read `tags`/`type` directly rather than running keyword-scoring logic from scratch. Content theme: AI ethics, civic tech, socio-technical design, SLMs, conversational design.
 
-## Still open before Phase 2 scoping
+## Phase 2 scoping
 
-- **Off-topic content in the corpus**: `wiki/projects/Page-Blueprint-Skills.md` is about a Figma/Cursor page-builder skill, not civic tech — confirms `wiki/projects/` isn't guaranteed single-topic. Categorization/filtering needs to handle (or exclude) non-civic-tech entries rather than assume the whole corpus fits the theme.
-- Whether to also ingest `wiki/index.md` (agent-maintained global index) as a browsable entry point, or treat it purely as a crawl aid.
-- Whether `sources:` wikilinks (pointing into `raw/clippings`, `raw/papers`, etc., which live outside `wiki/`) should be resolved so a topic document can link back to its original source note, or whether Phase 1 only ever surfaces the `wiki/` layer itself.
-- Whether the ~89-file `wiki/` corpus is loaded by filesystem read (static export, e.g. a build step copying into `public/`) vs. some live local file access — no git remote exists on the Obsidian side yet, so "Document Store from github repo" per the flowchart isn't literal today.
-
-## Not yet decided / deferred to Phase 2 scoping
-
-- Whether "Document Store from github repo" means live GitHub API reads/writes (needs auth + backend) vs. a build-time export of the vault into the repo's `public/`-style static files.
-- Metrics tile design for Total Files / Total Topics / Avg Files per Topic (likely replaces the currently-hidden Content Chunks/Queries/Avg Response/Accuracy metrics section).
+Ingest/Analyze open questions and the Login/User Accounts plan moved to [`PHASE2_PLAN.md`](./PHASE2_PLAN.md) so this doc stays a record of completed Phase 1 work.
 
 ## MVP 1 — built and tested (2026-10-10)
 
@@ -120,3 +112,4 @@ Files touched: `index.html`, `research.css`, `research.js`.
 - **Pinned-answer correctness fix**: verifying the above surfaced a real bug — phrased questions like "Who is BetaNYC?" don't reliably rank their target doc first in the keyword `search()` scorer (common words like "who"/"is"/"the" dilute the score toward unrelated, longer docs; 3 of the 6 curated topics mis-resolved). This also silently affected the v0.4.0 follow-up-topic suggestion chips (same "What is X?"/"Who is X?" phrasing). Fixed generally: `askQuery(query, fresh, pinnedId)` gained an optional third argument; `buildAskResults(query, pinnedId)` pins the known target doc as the top answer while still running real search to populate the Sources chip around it. Back-navigation stack entries now also store `pinnedId` so re-rendering an earlier turn restores the same pinned doc. Verified all 6 Recommended topics and the follow-up-topic chips now resolve to the correct doc.
 
 Files touched: `research.js`.
+
