@@ -16,6 +16,7 @@
   var layout = document.getElementById('rw-article-layout');
   var askLayout = document.getElementById('rw-ask-layout');
   var stack = []; // navigation history within the overlay: {screen, query?, id?}
+  var currentArticleId = null;
 
   function el(id) { return document.getElementById(id); }
 
@@ -157,28 +158,37 @@
     });
   }
 
-  function runSearch(query) {
-    query = query.trim();
-    if (!query) {
-      el('rw-hint').textContent = 'Enter a search term.';
-      return;
-    }
-    el('rw-hint').textContent = '';
-    var results = search(query);
-    stack = [{ screen: 'results', query: query }];
-    renderResults(query, results);
-    showScreen('results');
+  function findRelated(doc) {
+    var tagSet = {};
+    doc.tags.forEach(function (t) { tagSet[t] = true; });
+    var scored = DOCS.filter(function (d) { return d.id !== doc.id; }).map(function (d) {
+      var score = 0;
+      d.tags.forEach(function (t) { if (tagSet[t]) score += 3; });
+      if (d.type === doc.type) score += 1;
+      return { doc: d, score: score };
+    });
+    return scored
+      .filter(function (s) { return s.score > 0; })
+      .sort(function (a, b) { return b.score - a.score; })
+      .slice(0, 12)
+      .map(function (s) { return s.doc; });
   }
 
-  function renderResults(query, results) {
-    el('rw-results-query').textContent = '"' + query + '"';
-    el('rw-results-count').textContent = results.length + ' result' + (results.length === 1 ? '' : 's');
+  function showRelated(doc) {
+    stack.push({ screen: 'related', id: doc.id });
+    renderRelated(doc, findRelated(doc));
+    showScreen('related');
+  }
+
+  function renderRelated(doc, related) {
+    el('rw-results-query').textContent = 'Related to "' + doc.title + '"';
+    el('rw-results-count').textContent = related.length + ' related article' + (related.length === 1 ? '' : 's');
     var list = el('rw-results-list');
-    if (!results.length) {
-      list.innerHTML = '<div class="rw-empty"><strong>No matches</strong>Try a different term, or one of the type names: concept, entity, project.</div>';
+    if (!related.length) {
+      list.innerHTML = '<div class="rw-empty"><strong>No related articles</strong>No other documents share tags with this one yet.</div>';
       return;
     }
-    list.innerHTML = results.map(function (d) {
+    list.innerHTML = related.map(function (d) {
       return '<button type="button" class="rw-result-card" data-open="' + d.id + '">' +
         '<div class="rw-result-top"><span class="rw-type-dot ' + d.type + '"></span><span class="rw-result-type">' + d.type + ' · ' + d.id + '.md</span></div>' +
         '<div class="rw-result-title">' + escapeHtml(d.title) + '</div>' +
@@ -191,6 +201,60 @@
     });
   }
 
+  /* ---------------- recent search history ---------------- */
+
+  var RECENT_KEY = 'rw-recent-queries';
+
+  function loadRecent() {
+    try { return JSON.parse(localStorage.getItem(RECENT_KEY)) || []; }
+    catch (e) { return []; }
+  }
+
+  function saveRecent(list) {
+    try { localStorage.setItem(RECENT_KEY, JSON.stringify(list)); }
+    catch (e) { /* ignore (e.g. private browsing) */ }
+  }
+
+  function addRecent(query) {
+    var list = loadRecent().filter(function (q) { return q.toLowerCase() !== query.toLowerCase(); });
+    list.unshift(query);
+    saveRecent(list.slice(0, 3));
+    renderRecentChips();
+  }
+
+  function renderRecentChips() {
+    var list = loadRecent();
+    var section = el('rw-recent-section');
+    if (!list.length) { section.style.display = 'none'; return; }
+    section.style.display = '';
+    var wrap = el('rw-recent-chips');
+    wrap.innerHTML = list.map(function (q, i) {
+      return '<button type="button" class="rw-chip recent" data-recent-index="' + i + '">' +
+        '<svg class="rw-chip-icon" width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2" stroke-linecap="round"/></svg>' +
+        '<span class="rw-chip-text">' + escapeHtml(q) + '</span>' +
+        '<span class="rw-chip-dismiss" data-dismiss-index="' + i + '">' +
+        '<svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="5" y1="5" x2="15" y2="15"/><line x1="15" y1="5" x2="5" y2="15"/></svg>' +
+        '</span></button>';
+    }).join('');
+    wrap.querySelectorAll('[data-recent-index]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var q = loadRecent()[Number(btn.dataset.recentIndex)];
+        if (!q) return;
+        el('rw-input').value = q;
+        askQuery(q, true);
+      });
+    });
+    wrap.querySelectorAll('[data-dismiss-index]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var list = loadRecent();
+        list.splice(Number(btn.dataset.dismissIndex), 1);
+        saveRecent(list);
+        renderRecentChips();
+      });
+    });
+  }
+
   function askQuery(query, fresh) {
     query = query.trim();
     if (!query) {
@@ -198,6 +262,7 @@
       return;
     }
     el('rw-hint').textContent = '';
+    addRecent(query);
     var results = search(query);
     var entry = { screen: 'ask', query: query };
     if (fresh) stack = [entry]; else stack.push(entry);
@@ -265,6 +330,7 @@
     if (!doc) return;
     if (pushToStack) stack.push({ screen: 'article', id: id });
     closePane();
+    currentArticleId = id;
 
     el('rw-article-meta').innerHTML =
       '<span class="rw-article-type">' + doc.type + '</span><span>' + doc.id + '.md</span>' +
@@ -308,9 +374,10 @@
     stack.pop();
     var prev = stack[stack.length - 1];
     if (!prev) { showScreen('search'); return; }
-    if (prev.screen === 'results') {
-      renderResults(prev.query, search(prev.query));
-      showScreen('results');
+    if (prev.screen === 'related') {
+      var relatedDoc = docById[prev.id];
+      renderRelated(relatedDoc, findRelated(relatedDoc));
+      showScreen('related');
     } else if (prev.screen === 'ask') {
       renderAsk(prev.query, search(prev.query));
       showScreen('ask');
@@ -324,18 +391,18 @@
   function wire() {
     el('rw-doc-count').textContent = DOCS.length + ' documents indexed';
     renderTryChips();
+    renderRecentChips();
 
     el('rw-send').addEventListener('click', function () { askQuery(el('rw-input').value, true); });
     el('rw-input').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') askQuery(e.target.value, true);
     });
-    el('rw-new-search').addEventListener('click', function () {
-      el('rw-input').value = '';
-      stack = [];
-      showScreen('search');
-    });
+    el('rw-related-back').addEventListener('click', goBack);
     el('rw-back').addEventListener('click', goBack);
     el('rw-pane-backdrop').addEventListener('click', closePane);
+    el('rw-view-related').addEventListener('click', function () {
+      showRelated(docById[currentArticleId]);
+    });
 
     el('rw-ask-back').addEventListener('click', goBack);
     el('rw-new-question').addEventListener('click', function () {

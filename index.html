@@ -44,6 +44,11 @@
                         <div class="rw-section-label">Recommended</div>
                         <div class="rw-chip-grid" id="rw-try-chips"></div>
                     </div>
+
+                    <div class="rw-section" id="rw-recent-section" style="display:none">
+                        <div class="rw-section-label">Recent</div>
+                        <div class="rw-chip-grid" id="rw-recent-chips"></div>
+                    </div>
                 </section>
 
                 <!-- ===== ask (conversational) screen ===== -->
@@ -81,12 +86,12 @@
                     </div>
                 </section>
 
-                <!-- ===== results screen ===== -->
+                <!-- ===== related articles screen ===== -->
                 <section class="rw-screen rw-screen-results">
                     <div class="rw-results-col">
                         <div class="rw-results-head">
                             <h2 id="rw-results-query"></h2>
-                            <button class="rw-new-search" id="rw-new-search" type="button">← New search</button>
+                            <button class="rw-new-search" id="rw-related-back" type="button">← Back</button>
                         </div>
                         <p class="rw-results-count" id="rw-results-count"></p>
                         <div id="rw-results-list"></div>
@@ -108,6 +113,10 @@
                             <h3 id="rw-article-title"></h3>
                             <div class="rw-article-tags" id="rw-article-tags"></div>
                             <div class="rw-body" id="rw-article-body"></div>
+
+                            <div class="rw-related-cta-row">
+                                <button type="button" class="rw-related-cta" id="rw-view-related">View related articles</button>
+                            </div>
                         </div>
 
                         <div class="rw-pane-backdrop" id="rw-pane-backdrop"></div>

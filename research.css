@@ -66,7 +66,7 @@
 .rw-screen{ display:none; }
 #research-app[data-screen="search"] .rw-screen-search{ display:block; }
 #research-app[data-screen="ask"] .rw-screen-ask{ display:block; }
-#research-app[data-screen="results"] .rw-screen-results{ display:block; }
+#research-app[data-screen="related"] .rw-screen-results{ display:block; }
 #research-app[data-screen="article"] .rw-screen-article{ display:block; }
 
 /* ---------- search screen ---------- */
@@ -111,6 +111,15 @@
 .rw-type-dot.concept{ background:var(--rw-type-concept); }
 .rw-type-dot.entity{ background:var(--rw-type-entity); }
 .rw-type-dot.project{ background:var(--rw-type-project); }
+
+.rw-chip.recent{ background:var(--rw-surface); border-color:var(--rw-line); }
+.rw-chip.recent:hover{ background:var(--rw-surface-2); border-color:var(--rw-line-strong); }
+.rw-chip.recent .rw-chip-icon{ flex:none; color:var(--rw-muted-2); }
+.rw-chip-text{ flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.rw-chip-dismiss{
+  flex:none; display:flex; color:var(--rw-muted-2); border-radius:50%; padding:3px; margin:-3px -3px -3px 0;
+}
+.rw-chip-dismiss:hover{ color:var(--rw-ink); background:var(--rw-accent-soft); }
 
 /* ---------- results screen ---------- */
 .rw-screen-results{ padding:20px 20px 48px; }
@@ -170,6 +179,14 @@
 .rw-body p{ font-size:0.95rem; line-height:1.65; margin-bottom:14px; }
 .rw-body ul, .rw-body ol{ margin:0 0 14px; padding-left:22px; display:flex; flex-direction:column; gap:7px; }
 .rw-body li{ font-size:0.95rem; line-height:1.6; }
+
+.rw-related-cta-row{ margin-top:8px; padding-bottom:48px; }
+.rw-related-cta{
+  padding:11px 20px; border-radius:10px; border:1px solid var(--rw-line-strong);
+  background:var(--rw-surface); color:var(--rw-ink); font-size:0.85rem; font-weight:600;
+  cursor:pointer;
+}
+.rw-related-cta:hover{ border-color:var(--rw-accent); color:var(--rw-accent-ink); }
 
 .wikilink{
   appearance:none; background:none; border:none; padding:1px 3px; margin:0 -3px;

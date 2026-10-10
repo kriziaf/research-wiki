@@ -1,6 +1,6 @@
 # Phase 1 Plan — Civic Tech Research Portal
 
-Status: **v0.2.0 built** (Conversational Ask flow on top of MVP1's Search, Retrieve, View Article) — in its own repo as of 2026-10-10. Ingest/Analyze not yet scoped to implementation detail.
+Status: **v0.3.0 built** (Related articles + Recent search history on top of the v0.2.0 Conversational Ask flow and MVP1's Search, Retrieve, View Article) — in its own repo as of 2026-10-10. Ingest/Analyze not yet scoped to implementation detail.
 
 ## Source
 
@@ -94,5 +94,14 @@ Behavior, built against the real 89-doc corpus (no LLM — still the same keywor
 - Home's chip section relabeled "Try one of these" → "Recommended" to match the design guide's component inventory.
 
 A tabbed "Ask Wiki" / "Classic Search" toggle was prototyped and explicitly rejected — the ask flow is the only entry point for now. The MVP1 results-list screen (`rw-screen-results`, `runSearch`/`renderResults` in `research.js`) is **not removed**, just currently unreachable from the UI, in case a dedicated classic-search entry point is reintroduced later.
+
+Files touched: `index.html`, `research.css`, `research.js`.
+
+## v0.3.0 — Related Articles + Recent Search History (2026-10-10)
+
+Two follow-on refinements to the v0.2.0 Ask flow, both built from a real reference screenshot (Reddit Answers) but adapted to this portal's own design system rather than copied literally:
+
+- **Related articles**: the dormant MVP1 results-list screen (`rw-screen-results`, flagged above as "unreachable but kept") is no longer dead code — it's repurposed as a **"View related articles"** destination reached from a new button at the bottom of the full article view. `findRelated(doc)` scores every other doc by shared-tag count (+1 for same `type`), no new data needed since tags are already real/topical. `showRelated`/`renderRelated` push a `{screen:'related', id}` stack entry so Back correctly chains related-list → article → wherever the article was opened from (ask screen or another related list). The screen's old "← New search" (full stack reset) became "← Back" (`goBack()`), since it's now only ever entered contextually from an article, never from home.
+- **Recent search history**: a "Recent" section now renders on the home screen directly below "Recommended" (reversed from the reference screenshot's order, per explicit direction), hidden until at least one question has been asked. Backed by `localStorage` (`rw-recent-queries`), capped at 3, de-duped case-insensitively, each entry dismissible with an × without triggering the query. Every submitted question — home search, a Recommended chip, or a follow-up — logs to Recent via `addRecent()` inside `askQuery()`. Styled with a bordered `.rw-chip.recent` variant built from the same `--rw-*` tokens as everything else, distinguishing it from Recommended's filled chip per `DESIGN_STYLE_GUIDE.md`'s own Recent-vs-Recommended component spec.
 
 Files touched: `index.html`, `research.css`, `research.js`.
