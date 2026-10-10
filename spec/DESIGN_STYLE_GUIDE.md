@@ -20,7 +20,7 @@ The component patterns below (search console → cited answer → split-pane sou
 
 **Type** — two roles, deliberately not Inter/Space Grotesk:
 - Display (headings only): `Iowan Old Style, "Palatino Linotype", Palatino, Georgia, serif` — editorial/archival character for document titles.
-- Body + UI chrome: system sans stack (`ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`) — kept quiet so the serif carries the personality.
+- Body + UI chrome: `Source Sans Pro` (loaded via Google Fonts as "Source Sans 3", its current distribution name — see `index.html`'s `<link>` tags), falling back to the system sans stack (`ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`) if the web font fails to load — kept quiet so the serif carries the personality. Weights loaded: 400, 400 italic, 600, 700 (matches actual usage in `research.css`). Changed from the plain system stack 2026-10-10.
 - Metadata/frontmatter (tags, dates, source paths): `ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Menlo, Consolas, monospace` — ties directly to the literal YAML frontmatter shape documented below, not a stylistic flourish.
 
 Rationale for the palette: forest-teal echoes the "Smol Gardens" civic-tech-as-garden metaphor already present across the ingested wiki content (`Smol Gardens`, `Smol Gardens for Practitioners`, "bounded local stewards"), rather than inheriting the reference product's orange brand color.

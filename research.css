@@ -22,7 +22,7 @@
   --rw-type-project:#4E6E8C;
 
   --rw-font-display:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
-  --rw-font-body:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --rw-font-body:"Source Sans Pro","Source Sans 3",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --rw-font-mono:ui-monospace,"SF Mono","Cascadia Code","Roboto Mono",Menlo,Consolas,monospace;
 
   display:block; min-height:100vh; background:var(--rw-ground); color:var(--rw-ink);
