@@ -21,7 +21,7 @@
   --rw-type-entity:#9C6B3F;
   --rw-type-project:#4E6E8C;
 
-  --rw-font-display:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  --rw-font-display:"Space Grotesk",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --rw-font-body:"Source Sans Pro","Source Sans 3",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
   --rw-font-mono:ui-monospace,"SF Mono","Cascadia Code","Roboto Mono",Menlo,Consolas,monospace;
 
@@ -209,11 +209,12 @@
 .rw-article-tags{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:24px; }
 
 .rw-body h2, .rw-body h3, .rw-body h4{ font-family:var(--rw-font-body); font-weight:700; }
-.rw-body h2{ font-size:1.15rem; margin:26px 0 10px; }
-.rw-body h3{ font-size:1.08rem; margin:22px 0 10px; }
-.rw-body h4{ font-size:1rem; margin:18px 0 8px; }
-.rw-body p{ font-size:0.95rem; line-height:1.65; margin-bottom:14px; }
-.rw-body ul, .rw-body ol{ margin:0 0 14px; padding-left:22px; display:flex; flex-direction:column; gap:7px; }
+.rw-body h2{ font-size:1.15rem; margin:1.7em 0 0.5em; }
+.rw-body h3{ font-size:1.08rem; margin:1.5em 0 0.5em; }
+.rw-body h4{ font-size:1rem; margin:1.3em 0 0.4em; }
+.rw-body h2:first-child, .rw-body h3:first-child, .rw-body h4:first-child{ margin-top:0; }
+.rw-body p{ font-size:0.95rem; line-height:1.65; margin-bottom:1.65em; }
+.rw-body ul, .rw-body ol{ margin:0 0 1.65em; padding-left:22px; display:flex; flex-direction:column; gap:0.5em; }
 .rw-body li{ font-size:0.95rem; line-height:1.6; }
 
 .rw-related-cta-row{ margin-top:8px; padding-bottom:48px; }

@@ -18,9 +18,11 @@ The component patterns below (search console → cited answer → split-pane sou
 | `--line` | `#DCE3DD` | `#283530` | Hairline borders |
 | `--type-concept` / `--type-entity` / `--type-project` | `#2E7D64` / `#9C6B3F` / `#4E6E8C` | lighter equivalents | Small dots encoding frontmatter `type:` — semantic, not decorative |
 
-**Type** — two roles, deliberately not Inter/Space Grotesk:
-- Display (headings only): `Iowan Old Style, "Palatino Linotype", Palatino, Georgia, serif` — editorial/archival character for document titles.
-- Body + UI chrome: `Source Sans Pro` (loaded via Google Fonts as "Source Sans 3", its current distribution name — see `index.html`'s `<link>` tags), falling back to the system sans stack (`ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`) if the web font fails to load — kept quiet so the serif carries the personality. Weights loaded: 400, 400 italic, 600, 700 (matches actual usage in `research.css`). Changed from the plain system stack 2026-10-10.
+**Type** — two roles:
+- Display (headings only): `Space Grotesk` (loaded via Google Fonts, weight 700 — the only weight headings use), falling back to the system sans stack (`ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`) if the web font fails to load. **Reverses the original "deliberately not Inter/Space Grotesk" decision** (below) — changed 2026-10-10 by explicit request. Originally `Iowan Old Style, "Palatino Linotype", Palatino, Georgia, serif`, chosen for "editorial/archival character for document titles"; that serif/sans-chrome contrast is gone now that both display and body are sans.
+- Body + UI chrome: `Source Sans Pro` (loaded via Google Fonts as "Source Sans 3", its current distribution name — see `index.html`'s `<link>` tags), falling back to the system sans stack if the web font fails to load. Weights loaded: 400, 400 italic, 600, 700 (matches actual usage in `research.css`). Changed from the plain system stack 2026-10-10.
+
+<sub>Original rationale, kept for history: "two roles, deliberately not Inter/Space Grotesk" — superseded by the Space Grotesk change above.</sub>
 - Metadata/frontmatter (tags, dates, source paths): `ui-monospace, "SF Mono", "Cascadia Code", "Roboto Mono", Menlo, Consolas, monospace` — ties directly to the literal YAML frontmatter shape documented below, not a stylistic flourish.
 
 Rationale for the palette: forest-teal echoes the "Smol Gardens" civic-tech-as-garden metaphor already present across the ingested wiki content (`Smol Gardens`, `Smol Gardens for Practitioners`, "bounded local stewards"), rather than inheriting the reference product's orange brand color.
@@ -79,6 +81,7 @@ A recurring pattern: **bold lead-in phrase + regular-weight supporting clause** 
 - **Grid**: Recent/Recommended shortcuts lay out as a responsive 2-column grid with ~12–16px gaps.
 - **Icon buttons** (back, edit/compose, close): circular, ~40px, light-gray fill, black icon, no border.
 - Generous vertical rhythm — sections separated by clear whitespace rather than dividers (except the thin top-nav border).
+- **Article body rhythm** (`.rw-body` — article view, ask-flow answer preview): paragraph `margin-bottom` is set to match `line-height` exactly (both `1.65em` at the body's `0.95rem`), so the gap *between* paragraphs reads as one full blank line — never less than the leading *within* a paragraph. Fixed 2026-10-10 after a real bug: the gap had been a flat `14px` against a `1.65` line-height (~25px), so paragraphs were visually tighter than their own internal line spacing and read as one undifferentiated block. Headings (`h2`/`h3`/`h4`) use proportional `em`-based top margins (`1.7em`/`1.5em`/`1.3em`) for the same reason — scales with each heading's own font size rather than a flat px value, and collapses with the preceding paragraph's margin via normal CSS margin-collapse.
 
 ## Component inventory
 
