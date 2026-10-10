@@ -1,0 +1,579 @@
+<title>Research Wiki — Ask &amp; Cite, a design system demo</title>
+<style>
+  :root{
+    --ground:#F4F6F3;
+    --surface:#FFFFFF;
+    --surface-2:#EEF2EC;
+    --ink:#16211C;
+    --muted:#5C6B60;
+    --muted-2:#8A978E;
+    --accent:#27594A;
+    --accent-ink:#163A30;
+    --accent-soft:#DCE8E1;
+    --accent-soft-strong:#C6DBD0;
+    --line:#DCE3DD;
+    --line-strong:#C7D1C8;
+    --focus:#2E7D64;
+    --shadow:rgba(22,33,28,0.10);
+    --type-concept:#2E7D64;
+    --type-entity:#9C6B3F;
+    --type-project:#4E6E8C;
+
+    --font-display:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --font-body:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:ui-monospace,"SF Mono","Cascadia Code","Roboto Mono",Menlo,Consolas,monospace;
+  }
+
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#10160F;
+      --surface:#171F19;
+      --surface-2:#1D2821;
+      --ink:#E8EDE9;
+      --muted:#A9B6AC;
+      --muted-2:#79897F;
+      --accent:#74C2A2;
+      --accent-ink:#E2F0EA;
+      --accent-soft:#213A31;
+      --accent-soft-strong:#2B4A3E;
+      --line:#283530;
+      --line-strong:#374A41;
+      --focus:#74C2A2;
+      --shadow:rgba(0,0,0,0.45);
+      --type-concept:#74C2A2;
+      --type-entity:#D1A26E;
+      --type-project:#8FB2D6;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#10160F;
+    --surface:#171F19;
+    --surface-2:#1D2821;
+    --ink:#E8EDE9;
+    --muted:#A9B6AC;
+    --muted-2:#79897F;
+    --accent:#74C2A2;
+    --accent-ink:#E2F0EA;
+    --accent-soft:#213A31;
+    --accent-soft-strong:#2B4A3E;
+    --line:#283530;
+    --line-strong:#374A41;
+    --focus:#74C2A2;
+    --shadow:rgba(0,0,0,0.45);
+    --type-concept:#74C2A2;
+    --type-entity:#D1A26E;
+    --type-project:#8FB2D6;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--ground);
+    color:var(--ink);
+    font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4{ margin:0; font-family:var(--font-display); font-weight:700; text-wrap:balance; }
+  p{ margin:0; }
+  button{ font-family:inherit; }
+  :focus-visible{ outline:2px solid var(--focus); outline-offset:2px; border-radius:4px; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; animation:none !important; }
+  }
+
+  .app{ max-width:960px; margin:0 auto; min-height:100vh; display:flex; flex-direction:column; }
+
+  /* ---------- top bar ---------- */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 20px; border-bottom:1px solid var(--line);
+  }
+  .topbar-left{ display:flex; align-items:center; gap:14px; }
+  .wordmark{ font-family:var(--font-display); font-weight:700; font-size:0.95rem; letter-spacing:0.01em; }
+  .icon-btn{
+    display:inline-flex; align-items:center; justify-content:center;
+    width:36px; height:36px; border-radius:50%; border:none;
+    background:transparent; color:var(--ink); cursor:pointer;
+  }
+  .icon-btn:hover{ background:var(--surface-2); }
+  .topbar-right{ display:flex; align-items:center; gap:10px; }
+  .ingest-btn{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:8px 14px; border-radius:999px; border:1px solid var(--line-strong);
+    background:var(--surface); color:var(--ink); font-size:0.85rem; font-weight:600;
+    cursor:pointer;
+  }
+  .ingest-btn:hover{ border-color:var(--accent); color:var(--accent-ink); }
+  .bell-wrap{ position:relative; }
+  .badge{
+    position:absolute; top:2px; right:2px; min-width:15px; height:15px; padding:0 3px;
+    border-radius:999px; background:var(--accent); color:var(--surface);
+    font-size:0.62rem; font-weight:700; display:flex; align-items:center; justify-content:center;
+    font-variant-numeric:tabular-nums;
+  }
+  .avatar{
+    position:relative; width:32px; height:32px; border-radius:50%;
+    background:var(--accent-soft); color:var(--accent-ink);
+    display:flex; align-items:center; justify-content:center;
+    font-size:0.7rem; font-weight:700; font-family:var(--font-display);
+  }
+  .avatar::after{
+    content:""; position:absolute; bottom:-1px; right:-1px; width:9px; height:9px;
+    border-radius:50%; background:var(--accent); border:2px solid var(--surface);
+  }
+
+  main{ flex:1; }
+  .screen{ display:none; }
+  .app[data-screen="home"] .screen-home{ display:block; }
+  .app[data-screen="answer"] .screen-answer{ display:block; }
+
+  /* ---------- home screen ---------- */
+  .screen-home{ padding:64px 20px 48px; }
+  .hero{ display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center; }
+  .hero-icon{ color:var(--accent); }
+  .hero h1{ font-size:2.1rem; line-height:1.15; max-width:16ch; }
+  .hero p{ color:var(--muted); font-size:0.95rem; max-width:40ch; }
+
+  .search-pill{
+    margin:32px auto 0; max-width:680px; display:flex; align-items:center; gap:10px;
+    background:var(--surface-2); border:1.5px solid transparent; border-radius:999px;
+    padding:6px 8px 6px 22px; transition:border-color 120ms ease;
+  }
+  .search-pill:focus-within{ border-color:var(--focus); background:var(--surface); }
+  .search-pill input{
+    flex:1; border:none; background:transparent; outline:none; color:var(--ink);
+    font-size:1rem; font-family:var(--font-body); padding:12px 0;
+  }
+  .search-pill input::placeholder{ color:var(--muted-2); }
+  .send-btn{
+    width:38px; height:38px; flex:none; border-radius:50%; border:none;
+    background:var(--accent); color:var(--surface); cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .send-btn:hover{ background:var(--accent-ink); }
+
+  .section-block{ max-width:680px; margin:36px auto 0; }
+  .section-label{
+    display:flex; align-items:center; gap:6px; font-weight:700; font-size:0.95rem;
+    margin-bottom:12px; color:var(--ink);
+  }
+  .section-label svg{ color:var(--muted); }
+
+  .chip-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:560px){ .chip-grid{ grid-template-columns:1fr; } }
+
+  .chip{
+    display:flex; align-items:center; gap:10px; width:100%;
+    padding:13px 14px; border-radius:11px; font-size:0.88rem; text-align:left;
+    cursor:pointer; color:var(--ink); font-family:var(--font-body);
+  }
+  .chip.recent{ background:var(--surface); border:1px solid var(--line); }
+  .chip.recent:hover{ border-color:var(--line-strong); }
+  .chip.recent svg{ color:var(--muted-2); flex:none; }
+  .chip-text{ flex:1; }
+  .chip-dismiss{ background:none; border:none; color:var(--muted-2); cursor:pointer; padding:2px; display:flex; }
+  .chip-dismiss:hover{ color:var(--ink); }
+
+  .chip.rec{ background:var(--surface-2); border:1px solid transparent; }
+  .chip.rec:hover{ background:var(--accent-soft); }
+  .type-dot{ width:8px; height:8px; border-radius:50%; flex:none; }
+  .type-dot.concept{ background:var(--type-concept); }
+  .type-dot.entity{ background:var(--type-entity); }
+  .type-dot.project{ background:var(--type-project); }
+
+  /* ---------- answer screen ---------- */
+  .screen-answer{ padding:8px 20px 0; }
+  .answer-subbar{ display:flex; align-items:center; justify-content:space-between; padding:10px 0; }
+
+  .answer-layout{ display:grid; grid-template-columns:1fr; gap:0; align-items:start; }
+  .answer-col{ max-width:680px; margin:0 auto; width:100%; padding-bottom:140px; }
+
+  .q-bubble-row{ display:flex; justify-content:flex-end; margin-bottom:18px; }
+  .q-bubble{
+    background:var(--surface-2); border-radius:16px 16px 4px 16px;
+    padding:12px 16px; font-size:0.95rem; max-width:80%;
+  }
+
+  .source-chip{
+    display:inline-flex; align-items:center; gap:8px; background:var(--surface-2);
+    border:none; border-radius:999px; padding:8px 14px; font-size:0.82rem; color:var(--muted);
+    cursor:pointer; margin-bottom:22px; font-family:var(--font-body);
+  }
+  .source-chip:hover{ background:var(--accent-soft); color:var(--accent-ink); }
+  .dot-stack{ display:flex; }
+  .dot-stack .type-dot{ width:14px; height:14px; margin-left:-5px; border:2px solid var(--surface); }
+  .dot-stack .type-dot:first-child{ margin-left:0; }
+  .source-chip svg{ margin-left:2px; }
+
+  .answer-body h3{ font-size:1.55rem; line-height:1.2; margin-bottom:18px; }
+  .answer-body h4{ font-size:1.08rem; font-family:var(--font-body); font-weight:700; margin:26px 0 10px; }
+  .answer-body ul{ margin:0; padding:0; list-style:none; display:flex; flex-direction:column; gap:12px; }
+  .answer-body li{ font-size:0.96rem; line-height:1.55; }
+  .answer-body li strong{ font-weight:700; }
+  .cite{
+    appearance:none; background:none; border:none; padding:1px 3px; margin:0 -3px;
+    color:var(--accent-ink); text-decoration:underline; text-decoration-color:var(--line-strong);
+    text-underline-offset:2px; cursor:pointer; font:inherit; border-radius:4px;
+  }
+  .cite:hover{ text-decoration-color:var(--accent); }
+  .cite.active{ background:var(--accent-soft); text-decoration-color:var(--accent); }
+
+  .followup{
+    position:sticky; bottom:20px; max-width:680px; margin:24px auto 0;
+    background:var(--surface-2); border:1.5px solid transparent; border-radius:999px;
+    display:flex; align-items:center; padding:5px 6px 5px 20px; box-shadow:0 8px 24px var(--shadow);
+  }
+  .followup:focus-within{ border-color:var(--focus); background:var(--surface); }
+  .followup input{
+    flex:1; border:none; background:transparent; outline:none; color:var(--ink);
+    font-size:0.92rem; padding:11px 0; font-family:var(--font-body);
+  }
+  .followup input::placeholder{ color:var(--muted-2); }
+  .followup-hint{ max-width:680px; margin:8px auto 0; font-size:0.78rem; color:var(--muted-2); opacity:0; transition:opacity 180ms ease; }
+  .followup-hint.show{ opacity:1; }
+
+  /* ---------- source panel ---------- */
+  .pane-backdrop{ display:none; }
+  .source-panel-wrap{ display:none; }
+
+  @media (min-width:860px){
+    .answer-layout.pane-open{ grid-template-columns:minmax(0,1fr) 340px; gap:28px; }
+    .answer-layout.pane-open .answer-col{ margin:0; }
+    .answer-layout.pane-open .source-panel-wrap{ display:block; position:sticky; top:16px; }
+  }
+  @media (max-width:859px){
+    .answer-layout.pane-open .pane-backdrop{
+      display:block; position:fixed; inset:0; background:rgba(16,22,15,0.35); z-index:10;
+    }
+    .answer-layout.pane-open .source-panel-wrap{
+      display:block; position:fixed; top:0; right:0; bottom:0; width:min(86vw,380px);
+      z-index:11; overflow-y:auto; box-shadow:-12px 0 32px var(--shadow);
+    }
+  }
+
+  .source-panel{ display:none; background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:20px; }
+  .source-panel.active{ display:block; }
+  .panel-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .panel-tag{
+    font-family:var(--font-mono); font-size:0.72rem; color:var(--muted);
+    text-transform:lowercase; letter-spacing:0.01em;
+  }
+  .panel-close{ background:none; border:none; color:var(--muted); cursor:pointer; padding:4px; display:flex; }
+  .panel-close:hover{ color:var(--ink); }
+  .source-panel h4{ font-family:var(--font-display); font-size:1.3rem; margin-bottom:10px; }
+  .panel-meta{
+    font-family:var(--font-mono); font-size:0.72rem; color:var(--muted-2);
+    display:flex; flex-wrap:wrap; gap:4px 10px; margin-bottom:16px; line-height:1.6;
+  }
+  .panel-body p{ font-size:0.88rem; line-height:1.6; color:var(--ink); margin-bottom:16px; }
+  .panel-related{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:20px; }
+  .related-link{
+    font-size:0.78rem; background:var(--surface-2); color:var(--accent-ink);
+    border-radius:999px; padding:5px 10px;
+  }
+  .panel-cta{
+    width:100%; padding:11px; border-radius:10px; border:1px solid var(--line-strong);
+    background:var(--surface); color:var(--ink); font-size:0.85rem; font-weight:600;
+    cursor:pointer; text-align:center;
+  }
+  .panel-cta:hover{ border-color:var(--accent); color:var(--accent-ink); }
+</style>
+
+<div class="app" data-screen="home">
+
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="icon-btn" aria-label="Menu" type="button">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="2.5" y1="5.5" x2="17.5" y2="5.5"/><line x1="2.5" y1="10" x2="17.5" y2="10"/><line x1="2.5" y1="14.5" x2="17.5" y2="14.5"/></svg>
+      </button>
+      <span class="wordmark">Research Wiki</span>
+    </div>
+    <div class="topbar-right">
+      <button class="ingest-btn" type="button">
+        <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="10" y1="3" x2="10" y2="17"/><line x1="3" y1="10" x2="17" y2="10"/></svg>
+        Ingest
+      </button>
+      <button class="icon-btn bell-wrap" aria-label="2 pending approvals" title="2 pending approvals" type="button">
+        <svg width="19" height="19" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8a5 5 0 0 1 10 0c0 4 1.5 5 1.5 5h-13S5 12 5 8Z"/><path d="M8 16a2 2 0 0 0 4 0"/></svg>
+        <span class="badge">2</span>
+      </button>
+      <div class="avatar" title="Kriz Fernando">KF</div>
+    </div>
+  </header>
+
+  <main>
+    <!-- ===================== HOME ===================== -->
+    <section class="screen screen-home">
+      <div class="hero">
+        <svg class="hero-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 21V11"/>
+          <path d="M12 11C12 6 8 4 4 4c0 5 2 8 8 7Z"/>
+          <path d="M12 13c0-5 4-7 8-7 0 5-2 8-8 7Z"/>
+        </svg>
+        <h1>Ask the research wiki</h1>
+        <p>Search concepts, entities, and projects synthesized from the ingested vault — every answer traces back to a source document.</p>
+      </div>
+
+      <div class="search-pill">
+        <input id="home-input" type="text" placeholder="Ask about civic tech, AI ethics, or SLMs…" />
+        <button class="send-btn" id="home-send" aria-label="Ask" type="button">
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3l12 7-12 7V3Z"/></svg>
+        </button>
+      </div>
+
+      <div class="section-block">
+        <div class="section-label">
+          Recent
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l5 5 5-5"/></svg>
+        </div>
+        <div class="chip-grid">
+          <button class="chip recent" type="button" data-demo="1">
+            <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2" stroke-linecap="round"/></svg>
+            <span class="chip-text">how does the 6-pack of care work</span>
+            <span class="chip-dismiss" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="5" y1="5" x2="15" y2="15"/><line x1="15" y1="5" x2="5" y2="15"/></svg></span>
+          </button>
+          <button class="chip recent" type="button">
+            <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2" stroke-linecap="round"/></svg>
+            <span class="chip-text">SLM vs LLM tradeoffs for civic deployments</span>
+            <span class="chip-dismiss" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="5" y1="5" x2="15" y2="15"/><line x1="15" y1="5" x2="5" y2="15"/></svg></span>
+          </button>
+          <button class="chip recent" type="button">
+            <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="7"/><path d="M10 6v4l3 2" stroke-linecap="round"/></svg>
+            <span class="chip-text">what is a Kami steward</span>
+            <span class="chip-dismiss" aria-hidden="true"><svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="5" y1="5" x2="15" y2="15"/><line x1="15" y1="5" x2="5" y2="15"/></svg></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <div class="section-label">Recommended</div>
+        <div class="chip-grid">
+          <button class="chip rec" type="button" data-demo="1">
+            <span class="type-dot concept" title="concept"></span>
+            <span class="chip-text">What is the Civic.ai 6-Pack of Care?</span>
+          </button>
+          <button class="chip rec" type="button">
+            <span class="type-dot project" title="project"></span>
+            <span class="chip-text">Who maintains Smol Gardens?</span>
+          </button>
+          <button class="chip rec" type="button">
+            <span class="type-dot concept" title="concept"></span>
+            <span class="chip-text">RAG vs. the LLM wiki pattern</span>
+          </button>
+          <button class="chip rec" type="button">
+            <span class="type-dot concept" title="concept"></span>
+            <span class="chip-text">What is Accountable AI?</span>
+          </button>
+          <button class="chip rec" type="button">
+            <span class="type-dot entity" title="entity"></span>
+            <span class="chip-text">Who is BetaNYC?</span>
+          </button>
+          <button class="chip rec" type="button">
+            <span class="type-dot concept" title="concept"></span>
+            <span class="chip-text">Risks of vibecoding in civic tech</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== ANSWER ===================== -->
+    <section class="screen screen-answer">
+      <div class="answer-subbar">
+        <button class="icon-btn" id="back-btn" aria-label="Back" type="button">
+          <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 4.5L6 10l6.5 5.5"/></svg>
+        </button>
+        <button class="icon-btn" aria-label="New question" type="button">
+          <svg width="17" height="17" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 3.5l3 3L7 16l-4 1 1-4Z"/></svg>
+        </button>
+      </div>
+
+      <div class="answer-layout" id="answer-layout">
+        <div class="answer-col">
+
+          <div class="q-bubble-row">
+            <div class="q-bubble" id="q-text">What is the Civic.ai 6-Pack of Care?</div>
+          </div>
+
+          <button class="source-chip" id="source-chip" type="button">
+            <span class="dot-stack">
+              <span class="type-dot concept"></span>
+              <span class="type-dot concept"></span>
+              <span class="type-dot project"></span>
+            </span>
+            Sources: Civic Tech, Civic AI, Kami +1 more
+            <svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 5l5 5-5 5"/></svg>
+          </button>
+
+          <div class="answer-body">
+            <h3>The Civic.ai 6-Pack of Care</h3>
+
+            <h4>Six Principles for Trustworthy Civic AI</h4>
+            <ul>
+              <li><strong>Attentiveness.</strong> <button class="cite" data-cite="civic-tech">Listen to communities closest to the problem.</button></li>
+              <li><strong>Responsibility.</strong> <button class="cite" data-cite="civic-tech">Clear accountability and consequences.</button></li>
+              <li><strong>Competence.</strong> <button class="cite" data-cite="civic-tech">Systems that work reliably and are auditable.</button></li>
+              <li><strong>Responsiveness.</strong> <button class="cite" data-cite="civic-tech">Communities can contest and repair outcomes.</button></li>
+              <li><strong>Solidarity.</strong> <button class="cite" data-cite="civic-tech">Prevent lock-in, enable cooperation.</button></li>
+              <li><strong>Symbiosis.</strong> <button class="cite" data-cite="civic-tech">Systems stay bounded, local, and sunset-ready.</button></li>
+            </ul>
+
+            <h4>Where It's Applied</h4>
+            <ul>
+              <li><strong>Bounded local stewards.</strong> Communities govern their own instance rather than depend on one powerful system — the deployment unit for this is a <button class="cite" data-cite="kami">Kami</button>.</li>
+              <li><strong>The broader shift.</strong> <button class="cite" data-cite="civic-ai">Civic AI reframes governance around many small, accountable systems instead of one centralized one.</button></li>
+            </ul>
+          </div>
+
+          <div class="followup">
+            <input id="followup-input" type="text" placeholder="Ask a follow-up…" />
+            <button class="send-btn" id="followup-send" aria-label="Ask follow-up" type="button">
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3l12 7-12 7V3Z"/></svg>
+            </button>
+          </div>
+          <div class="followup-hint" id="followup-hint">Follow-up answers aren't wired up in this demo.</div>
+        </div>
+
+        <div class="pane-backdrop" id="pane-backdrop"></div>
+        <aside class="source-panel-wrap">
+
+          <div class="source-panel" data-panel="civic-tech">
+            <div class="panel-head">
+              <span class="panel-tag">concept · wiki/concepts/civic-tech.md</span>
+              <button class="panel-close" aria-label="Close" type="button"><svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="5" y1="5" x2="15" y2="15"/><line x1="15" y1="5" x2="5" y2="15"/></svg></button>
+            </div>
+            <h4>Civic Tech</h4>
+            <div class="panel-meta">
+              <span>tags: civic-tech, governance, democracy</span>
+              <span>updated: 2026-06-05</span>
+            </div>
+            <div class="panel-body">
+              <p>Technology built explicitly to strengthen civic participation, democratic governance, and public interest — serving communities, government, and civil society rather than extracting value or accumulating power. The 6-Pack of Care provides six design principles for building systems communities can trust.</p>
+            </div>
+            <div class="panel-related">
+              <span class="related-link">Civic AI</span>
+              <span class="related-link">Kami</span>
+              <span class="related-link">Accountable AI</span>
+            </div>
+            <button class="panel-cta" type="button">Open full document →</button>
+          </div>
+
+          <div class="source-panel" data-panel="kami">
+            <div class="panel-head">
+              <span class="panel-tag">concept · wiki/concepts/kami.md</span>
+              <button class="panel-close" aria-label="Close" type="button"><svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="5" y1="5" x2="15" y2="15"/><line x1="15" y1="5" x2="5" y2="15"/></svg></button>
+            </div>
+            <h4>Kami</h4>
+            <div class="panel-meta">
+              <span>tags: civic-ai, governance, stewardship</span>
+              <span>updated: 2026-06-05</span>
+            </div>
+            <div class="panel-body">
+              <p>Bounded local stewards — the deployment unit for community-governed AI. Rather than one powerful system serving everyone, a Kami lets a community own and govern a scoped, auditable, sunset-ready AI steward, in keeping with the Civic.ai 6-Pack of Care.</p>
+            </div>
+            <div class="panel-related">
+              <span class="related-link">Civic AI</span>
+              <span class="related-link">Civic Tech</span>
+              <span class="related-link">6-Pack of Care</span>
+            </div>
+            <button class="panel-cta" type="button">Open full document →</button>
+          </div>
+
+          <div class="source-panel" data-panel="civic-ai">
+            <div class="panel-head">
+              <span class="panel-tag">concept · wiki/concepts/civic-ai.md</span>
+              <button class="panel-close" aria-label="Close" type="button"><svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="5" y1="5" x2="15" y2="15"/><line x1="15" y1="5" x2="5" y2="15"/></svg></button>
+            </div>
+            <h4>Civic AI</h4>
+            <div class="panel-meta">
+              <span>tags: civic-ai, governance, community</span>
+              <span>updated: 2026-06-05</span>
+            </div>
+            <div class="panel-body">
+              <p>An evolution in civic tech governance: rather than one powerful system serving everyone, create many bounded local stewards (Kami) that communities own and govern. Represents the future of accountable civic tech.</p>
+            </div>
+            <div class="panel-related">
+              <span class="related-link">Kami</span>
+              <span class="related-link">Civic Tech</span>
+              <span class="related-link">Care Ethics in AI</span>
+            </div>
+            <button class="panel-cta" type="button">Open full document →</button>
+          </div>
+
+        </aside>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+  var app = document.querySelector('.app');
+  var layout = document.getElementById('answer-layout');
+  var qText = document.getElementById('q-text');
+
+  function goHome(){
+    app.dataset.screen = 'home';
+    closePane();
+  }
+  function showAnswer(question){
+    if(question) qText.textContent = question;
+    app.dataset.screen = 'answer';
+    window.scrollTo(0,0);
+  }
+  function openPane(key){
+    document.querySelectorAll('.source-panel').forEach(function(p){
+      p.classList.toggle('active', p.dataset.panel === key);
+    });
+    document.querySelectorAll('.cite').forEach(function(c){
+      c.classList.toggle('active', c.dataset.cite === key);
+    });
+    layout.classList.add('pane-open');
+  }
+  function closePane(){
+    layout.classList.remove('pane-open');
+    document.querySelectorAll('.cite').forEach(function(c){ c.classList.remove('active'); });
+  }
+
+  document.getElementById('back-btn').addEventListener('click', goHome);
+
+  document.getElementById('home-send').addEventListener('click', function(){
+    showAnswer(document.getElementById('home-input').value.trim());
+  });
+  document.getElementById('home-input').addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ showAnswer(e.target.value.trim()); }
+  });
+
+  document.querySelectorAll('[data-demo="1"]').forEach(function(el){
+    el.addEventListener('click', function(){
+      var label = el.querySelector('.chip-text').textContent;
+      showAnswer(label.charAt(0).toUpperCase() + label.slice(1) + (label.endsWith('?') ? '' : '?'));
+    });
+  });
+  // keep the canonical demo question crisp for the two wired shortcuts
+  document.querySelectorAll('[data-demo="1"] .chip-text').forEach(function(el){
+    el.dataset.full = 'What is the Civic.ai 6-Pack of Care?';
+  });
+  document.querySelectorAll('[data-demo="1"]').forEach(function(el){
+    el.addEventListener('click', function(){ showAnswer('What is the Civic.ai 6-Pack of Care?'); });
+  });
+
+  document.getElementById('source-chip').addEventListener('click', function(){ openPane('civic-tech'); });
+  document.querySelectorAll('.cite').forEach(function(btn){
+    btn.addEventListener('click', function(){ openPane(btn.dataset.cite); });
+  });
+  document.querySelectorAll('.panel-close').forEach(function(btn){
+    btn.addEventListener('click', closePane);
+  });
+  document.getElementById('pane-backdrop').addEventListener('click', closePane);
+
+  var hint = document.getElementById('followup-hint');
+  function flashHint(){
+    hint.classList.add('show');
+    clearTimeout(flashHint._t);
+    flashHint._t = setTimeout(function(){ hint.classList.remove('show'); }, 2600);
+  }
+  document.getElementById('followup-send').addEventListener('click', flashHint);
+  document.getElementById('followup-input').addEventListener('keydown', function(e){
+    if(e.key === 'Enter'){ flashHint(); }
+  });
+</script>

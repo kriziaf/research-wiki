@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<!-- ============================================================
+     Research Wiki — Search / Retrieve / View Article (MVP1)
+     Files: index.html + research.css + research.js + data/wiki-index.js
+     Ingest is explicitly out of scope for MVP1. See PHASE1_PLAN.md.
+     ============================================================ -->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Research Wiki</title>
+    <link rel="stylesheet" href="research.css">
+</head>
+<body>
+    <div id="research-app" data-screen="search">
+        <div class="rw-shell">
+            <header class="rw-topbar">
+                <span class="rw-wordmark">Research Wiki</span>
+                <span class="rw-doc-count" id="rw-doc-count"></span>
+            </header>
+
+            <main>
+                <!-- ===== search screen ===== -->
+                <section class="rw-screen rw-screen-search">
+                    <div class="rw-hero">
+                        <svg class="rw-hero-icon" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 21V11"/>
+                            <path d="M12 11C12 6 8 4 4 4c0 5 2 8 8 7Z"/>
+                            <path d="M12 13c0-5 4-7 8-7 0 5-2 8-8 7Z"/>
+                        </svg>
+                        <h1>Ask the research wiki</h1>
+                        <p>Search concepts, entities, and projects synthesized from the ingested vault — every result links back to its source document.</p>
+                    </div>
+
+                    <div class="rw-search-pill">
+                        <input id="rw-input" type="text" placeholder="Search for a concept, entity, or project…" />
+                        <button class="rw-send" id="rw-send" aria-label="Search" type="button">
+                            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3l12 7-12 7V3Z"/></svg>
+                        </button>
+                    </div>
+                    <p class="rw-hint" id="rw-hint"></p>
+
+                    <div class="rw-section">
+                        <div class="rw-section-label">Try one of these</div>
+                        <div class="rw-chip-grid" id="rw-try-chips"></div>
+                    </div>
+                </section>
+
+                <!-- ===== results screen ===== -->
+                <section class="rw-screen rw-screen-results">
+                    <div class="rw-results-col">
+                        <div class="rw-results-head">
+                            <h2 id="rw-results-query"></h2>
+                            <button class="rw-new-search" id="rw-new-search" type="button">← New search</button>
+                        </div>
+                        <p class="rw-results-count" id="rw-results-count"></p>
+                        <div id="rw-results-list"></div>
+                    </div>
+                </section>
+
+                <!-- ===== article screen ===== -->
+                <section class="rw-screen rw-screen-article">
+                    <div class="rw-article-subbar">
+                        <button class="rw-back" id="rw-back" type="button">
+                            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 4.5L6 10l6.5 5.5"/></svg>
+                            Back
+                        </button>
+                    </div>
+
+                    <div class="rw-article-layout" id="rw-article-layout">
+                        <div class="rw-article-col">
+                            <div class="rw-article-meta-row" id="rw-article-meta"></div>
+                            <h3 id="rw-article-title"></h3>
+                            <div class="rw-article-tags" id="rw-article-tags"></div>
+                            <div class="rw-body" id="rw-article-body"></div>
+                        </div>
+
+                        <div class="rw-pane-backdrop" id="rw-pane-backdrop"></div>
+                        <aside class="rw-preview-wrap">
+                            <div class="rw-preview" id="rw-preview"></div>
+                        </aside>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <script src="data/wiki-index.js"></script>
+    <script src="research.js"></script>
+</body>
+</html>
