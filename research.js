@@ -1,14 +1,14 @@
 /* ============================================================
-   Research Wiki — Search / Retrieve / View Article (MVP1)
+   Smol Wiki — Search / Retrieve / View Article (MVP1)
    Data: window.WIKI_INDEX from data/wiki-index.js (manual snapshot,
    see scripts/snapshot-wiki.mjs and spec/PHASE1_PLAN.md "MVP 1" section).
    Ingest is explicitly out of scope here.
    ============================================================ */
 
 (function () {
-  // Single source of truth for the footer's "Research Wiki Chat vX.Y.Z" label.
+  // Single source of truth for the footer's "Smol Wiki Chat vX.Y.Z" label.
   // Bump this when spec/PHASE1_PLAN.md records a new version — nothing else to touch.
-  var APP_VERSION = '0.5.1';
+  var APP_VERSION = '0.5.2';
 
   var DOCS = window.WIKI_INDEX || [];
   var titleIndex = {};
@@ -526,7 +526,7 @@
 
   function wire() {
     el('rw-doc-count').textContent = DOCS.length + ' documents indexed';
-    el('rw-footer-version').textContent = 'Research Wiki Chat v' + APP_VERSION;
+    el('rw-footer-version').textContent = 'Smol Wiki Chat v' + APP_VERSION;
     renderTryChips();
     renderRecentChips();
 

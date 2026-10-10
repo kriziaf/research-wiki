@@ -7,7 +7,7 @@ description: Finds a candidate article in the user's configured local source fol
 
 Ingests one article at a time from the user's own vault into their wiki, following the zone model and frontmatter contract documented in `spec/WIKI_INGEST_SPEC.md`. This skill never hardcodes a path — every filesystem location comes from the user's local config (step 1), so this skill works for anyone who clones this repo and points it at their own vault.
 
-**This is not the in-app Ingest UI.** The deployed Research Wiki app (`index.html`/`research.js`) has no Ingest flow yet (see `spec/PHASE2_PLAN.md`) — this skill operates directly on the local filesystem, outside the app, the same way the user's own `wiki-ingest` command does on their personal setup.
+**This is not the in-app Ingest UI.** The deployed Smol Wiki app (`index.html`/`research.js`) has no Ingest flow yet (see `spec/PHASE2_PLAN.md`) — this skill operates directly on the local filesystem, outside the app, the same way the user's own `wiki-ingest` command does on their personal setup.
 
 ## Step 1 — Load or create the local config
 
@@ -65,4 +65,4 @@ URL ingestion (the spec's `defuddle` reference) isn't implemented here — this 
 
 ## Step 9 — Offer to refresh the deployed app's corpus
 
-If this repo has `scripts/snapshot-wiki.mjs`, after a successful write, offer (don't auto-run) `node scripts/snapshot-wiki.mjs` so the newly ingested page becomes searchable in the deployed Research Wiki app's `data/wiki-index.js`. That script also reads `vaultRoot` from the same `.claude/wiki-ingest.local.json`, so no path duplication.
+If this repo has `scripts/snapshot-wiki.mjs`, after a successful write, offer (don't auto-run) `node scripts/snapshot-wiki.mjs` so the newly ingested page becomes searchable in the deployed Smol Wiki app's `data/wiki-index.js`. That script also reads `vaultRoot` from the same `.claude/wiki-ingest.local.json`, so no path duplication.

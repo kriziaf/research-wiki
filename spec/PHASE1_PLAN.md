@@ -1,6 +1,6 @@
 # Phase 1 Plan — Civic Tech Research Portal
 
-Status: **Phase 1 complete as of v0.5.1** (Curated Recommended topics + a pinned-answer fix for the search scorer, on top of v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
+Status: **Phase 1 complete as of v0.5.2** (Curated Recommended topics + a pinned-answer fix for the search scorer, on top of v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
 
 ## Source
 
@@ -102,7 +102,7 @@ Files touched: `index.html`, `research.css`, `research.js`.
 
 - **Shortened, conversational answers**: `renderAsk()`'s answer body no longer dumps the full matched doc — a new `previewParagraphs(body, count)` walks the markdown line-by-line (reusing the same tokenizing rules as `renderMarkdown`) but skips headings/list items, collecting only the first 2 plain-prose paragraphs ("the description + the next paragraph"). Falls back to the existing `snippet()` helper for the rare doc with no lead prose. A `Continue reading "<title>" →` link under the preview opens the full article (`openArticle`), same call the Sources-chip preview already used.
 - **3 related follow-up topics**: below the preview, up to 3 tag-related docs (reusing `findRelated()` from v0.3.0 — no new scoring logic) render as pill suggestion chips, phrased "What is X?" / "Who is X?" per `design-system-demo.html`'s own Recommended-chip convention (`topicQuestion()`). Clicking one calls `askQuery(question, false)` — a follow-up turn appended to the conversation, same as typing in the follow-up box.
-- **Footer**: a subtle footer (`.rw-footer`) now runs along the bottom of every screen — "Created for Open Civic Tech" linking to opencivic.tech, and "Research Wiki Chat v`APP_VERSION`" on the right. `APP_VERSION` is a single constant at the top of `research.js`; bump it there when tagging a new version and the footer updates everywhere with no HTML changes.
+- **Footer**: a subtle footer (`.rw-footer`) now runs along the bottom of every screen — "Created for Open Civic Tech" linking to opencivic.tech, and "Smol Wiki Chat v`APP_VERSION`" (renamed from "Research Wiki Chat" 2026-10-10) on the right. `APP_VERSION` is a single constant at the top of `research.js`; bump it there when tagging a new version and the footer updates everywhere with no HTML changes.
 
 Files touched: `index.html`, `research.css`, `research.js`.
 
@@ -155,4 +155,12 @@ The hamburger icon (`#rw-menu-btn`), which v0.5.0 wired to navigate straight to 
 - Confirmed explicitly with the user: the standalone "Log in" button and avatar icon already in the top-right of the header are **unchanged** — this adds a second path to the same (still non-functional) Log in action, not a consolidation.
 
 Files touched: `index.html`, `research.css`, `research.js`.
+
+## v0.5.2 — Renamed to Smol Wiki (2026-10-10)
+
+App renamed from "Research Wiki" to "Smol Wiki" throughout the live product: browser tab title, header wordmark, home headline ("Ask the research wiki" → "Ask Smol wiki" — the user's exact phrasing, dropping "the"), and the footer's "Smol Wiki Chat v`APP_VERSION`" line. Also updated: `README.md`'s title, code comment headers in `index.html`/`research.css`/`research.js`, and the two "Research Wiki app" mentions in `.claude/skills/wiki-ingest/SKILL.md`.
+
+**Deliberately left untouched**: `spec/design-system-demo.html` — explicitly a frozen historical mockup (per its own documented status as "the original interactive mockup... superseded by the real app"), not live product; retroactively renaming it would misrepresent what was actually approved under that name at the time. Also untouched: the actual GitHub repository name (`kriziaf/research-wiki`) — a platform-level rename, not a text edit, left for the user to action separately if wanted.
+
+Files touched: `index.html`, `research.css`, `research.js`, `README.md`, `.claude/skills/wiki-ingest/SKILL.md`.
 

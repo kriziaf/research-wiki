@@ -1,4 +1,4 @@
-# Research Wiki
+# Smol Wiki
 
 Civic tech research portal — MVP1. Static client-side app (`index.html` + `research.css` + `research.js`) over a real knowledge base built from an Obsidian vault.
 
