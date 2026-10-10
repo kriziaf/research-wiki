@@ -23,7 +23,7 @@ Read `.claude/wiki-ingest.local.json` (repo root). It looks like:
 }
 ```
 
-- `vaultRoot` must contain `raw/clippings/`, `wiki/concepts/`, `wiki/entities/`, `wiki/projects/` (create these if the vault doesn't have them yet and the user confirms that's intentional).
+- `vaultRoot` must contain `raw/clippings/`, `wiki/concepts/`, `wiki/entities/`, `wiki/projects/`, `wiki/articles/` (create these if the vault doesn't have them yet and the user confirms that's intentional).
 - `sourceFolders` is searched recursively for candidate `.md` files.
 
 If this file doesn't exist, ask the user for both paths, then write the file (it's gitignored — confirm with `git check-ignore .claude/wiki-ingest.local.json` if unsure — so it never gets committed).
@@ -46,11 +46,16 @@ Read the chosen file(s) — more than one at a time is fine (e.g. two linked art
 
 **Sourceless files**: if a file has partial or no frontmatter — no `source:` URL, no `title:`, reads as an original note/reflection rather than an external clipping — don't fabricate a citation. Synthesize minimal frontmatter instead: `title` from the filename or an obvious first line, `created` as today, `type: note` (instead of the implicit clipping type), and simply omit `source:`/`author:` rather than inventing them. Say so explicitly in the Step 5 plan so the user can correct it if the file actually does have a source you missed.
 
+**Full-article option — articles only, never research papers**: in addition to the usual concept/entity extraction, offer (don't assume) creating a `wiki/articles/<Title>.md` page holding the complete text verbatim, tagged `type: full-article` plus `"full-article"` in `tags:`, with `sourceUrl:`/`sourceAuthor:` frontmatter pointing at the real source. **Only offer this for articles** (blog posts, newsletter pieces, essays, news — the kind of thing that lands in `raw/clippings/`), **never for research papers** (journal/conference papers, preprints, anything that belongs in `raw/papers/` instead). Classify using whatever signals are available — `source:` domain (`arxiv.org`, `doi.org`, journal/publisher domains, `.edu` paper/PDF pages), a DOI, a `published:` field citing a journal/conference, or the file simply being a PDF-derived academic paper. If genuinely ambiguous, ask rather than guess, per Step 7's governance rule. Research papers still get the normal concept/entity synthesis (Step 4 above) — they're just never candidates for a verbatim full-text copy, full stop, regardless of private-vault-only status.
+
+**This page is private-vault-only by design** — it must never be treated as something that flows into the public app at full length. `scripts/snapshot-wiki.mjs` enforces this on the export side (Step 9), but don't undermine that here either: never paste the full article text into your own chat response when proposing or confirming this plan — describe it by title/word-count, the way you would any other file write.
+
 ## Step 5 — Present the plan, then stop
 
 Before writing anything, list exactly what will happen:
 - The raw copy: `vaultRoot/raw/clippings/<today's date, YYYY-MM-DD>-<kebab-case-slug-of-title>.md` (new file; never overwrites an existing raw file — if the slug already exists, say so and ask how to proceed instead of silently renaming).
 - Each wiki page: `vaultRoot/wiki/<zone>/<Title>.md` — marked **new** (full frontmatter: `title`, `type`, `tags`, `sources: ["[[raw-slug]]"]`, `created`, `updated` both set to today) or **append** (existing file gets the new `[[raw-slug]]` added to its `sources:` list, `updated:` bumped to today, and any genuinely new nuance folded into the body — never a wholesale rewrite of existing content).
+- If the full-article option is in play: `vaultRoot/wiki/articles/<Title>.md` as its own explicit line item (new or append, same rules), noting it holds the complete text and is private-vault-only.
 
 End your turn here. Do not call Write/Edit until the user's next message approves the plan. If they want changes (different tags, skip an entity, rename a page), revise the plan and present it again rather than writing a partial version.
 

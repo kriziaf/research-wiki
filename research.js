@@ -8,7 +8,7 @@
 (function () {
   // Single source of truth for the footer's "Smol Wiki Chat vX.Y.Z" label.
   // Bump this when spec/PHASE1_PLAN.md records a new version — nothing else to touch.
-  var APP_VERSION = '0.5.3';
+  var APP_VERSION = '0.5.4';
 
   var DOCS = window.WIKI_INDEX || [];
   var titleIndex = {};
@@ -510,6 +510,18 @@
     el('rw-article-tags').innerHTML = doc.tags.map(function (t) {
       return '<span class="rw-tag">' + escapeHtml(t) + '</span>';
     }).join('');
+
+    var sourceEl = el('rw-article-source');
+    if (doc.sourceUrl) {
+      sourceEl.style.display = '';
+      sourceEl.innerHTML =
+        '<a href="' + escapeHtml(doc.sourceUrl) + '" target="_blank" rel="noopener noreferrer" class="rw-article-source-link">Read full article →</a>' +
+        (doc.sourceAuthor ? '<span class="rw-article-source-author">by ' + escapeHtml(doc.sourceAuthor) + '</span>' : '');
+    } else {
+      sourceEl.style.display = 'none';
+      sourceEl.innerHTML = '';
+    }
+
     el('rw-article-body').innerHTML = renderMarkdown(doc.body);
 
     el('rw-article-body').querySelectorAll('.wikilink').forEach(function (btn) {

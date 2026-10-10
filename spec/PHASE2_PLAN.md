@@ -47,3 +47,11 @@ Alternatives considered, not chosen for v1: **Auth0** (more enterprise/battle-te
 - Tested end-to-end against a real case this session: searching "humanities are the moat" across the two configured source folders correctly found two near-duplicate candidates in Clippings, none in Backup, and confirmed the title wasn't already in `data/wiki-index.js`.
 
 Files touched: `.gitignore`, `.claude/skills/wiki-ingest/SKILL.md` (new, committed), `.claude/wiki-ingest.local.json` (new, gitignored — not in the repo), `scripts/snapshot-wiki.mjs`.
+
+## Surface Original Article + Author Credit — built via the full-article type (2026-10-10)
+
+Originally parked here as a generic "add citations to every doc" task. **Superseded by a narrower, concrete design** (see `spec/PHASE1_PLAN.md`'s dated version entry for the actual build): rather than retroactively normalizing the 28 existing raw clippings' inconsistent frontmatter schemas (real complication found at the time — some use singular `source:`/`author:`, others plural `sources:`/`authors:` plus an `organization:` field no shape elsewhere has), new ingests can opt into a dedicated `type: full-article` page (`wiki/articles/<Title>.md`) carrying clean `sourceUrl:`/`sourceAuthor:` frontmatter from the start.
+
+**Copyright boundary, decided explicitly with the user**: the full article text itself stays **private-vault-only** (`wiki/articles/`, never committed to this repo). `scripts/snapshot-wiki.mjs` exports only a short excerpt + `sourceUrl`/`sourceAuthor` for this type — the public app/repo never carries a full reproduction of externally-sourced copyrighted text, only a credited excerpt and a "Read full article →" link to the real source.
+
+**Not done by this pass**: retroactively adding `sourceUrl`/`sourceAuthor` to the 98 existing concept/entity pages, or normalizing the legacy raw-clipping schema inconsistency — both stay genuinely deferred/optional if wanted later.

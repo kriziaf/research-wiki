@@ -27,8 +27,20 @@ function loadVaultRoot() {
 }
 
 const VAULT_WIKI_ROOT = path.join(loadVaultRoot(), 'wiki');
-const ZONES = ['concepts', 'entities', 'projects'];
+const ZONES = ['concepts', 'entities', 'projects', 'articles'];
 const OUT_FILE = new URL('../data/wiki-index.js', import.meta.url);
+
+// wiki/articles/ (type: full-article) holds complete, verbatim article text —
+// private-vault-only by design (see .claude/skills/wiki-ingest/SKILL.md).
+// Never export the full body for this zone; only a short excerpt, so a full
+// reproduction of externally-sourced copyrighted text never reaches the
+// public repo via data/wiki-index.js.
+const EXCERPT_LENGTH = 840;
+
+function excerpt(body, len) {
+  const plain = body.replace(/\s+/g, ' ').trim();
+  return plain.length > len ? plain.slice(0, len).replace(/\s+\S*$/, '') + '…' : plain;
+}
 
 function parseFrontmatter(raw) {
   const match = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/);
@@ -77,6 +89,7 @@ for (const zone of ZONES) {
   for (const file of files) {
     const raw = fs.readFileSync(path.join(dir, file), 'utf8');
     const { meta, body } = parseFrontmatter(raw);
+    const isFullArticle = zone === 'articles' || meta.type === 'full-article';
     docs.push({
       id: slugify(zone, file),
       title: meta.title || file.replace(/\.md$/, ''),
@@ -84,7 +97,9 @@ for (const zone of ZONES) {
       tags: Array.isArray(meta.tags) ? meta.tags : (meta.tags ? [meta.tags] : []),
       created: meta.created || '',
       updated: meta.updated || '',
-      body,
+      body: isFullArticle ? excerpt(body, EXCERPT_LENGTH) : body,
+      ...(meta.sourceUrl ? { sourceUrl: meta.sourceUrl } : {}),
+      ...(meta.sourceAuthor ? { sourceAuthor: meta.sourceAuthor } : {}),
     });
   }
 }

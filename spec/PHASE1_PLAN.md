@@ -1,6 +1,6 @@
 # Phase 1 Plan — Civic Tech Research Portal
 
-Status: **Phase 1 complete as of v0.5.3** (Curated Recommended topics + a pinned-answer fix for the search scorer, on top of v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
+Status: **Phase 1 complete as of v0.5.4** (Curated Recommended topics + a pinned-answer fix for the search scorer, on top of v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
 
 ## Source
 
@@ -173,4 +173,15 @@ New sub-nav page (hamburger menu, between "Search Topics" and the Log-in divider
 - **`wiki-ingest` skill updated**: Step 9 now offers regenerating both snapshots (`snapshot-wiki.mjs` and `snapshot-ingest-log.mjs`) after a write, not just the wiki corpus one.
 
 Files touched: `index.html`, `research.css`, `research.js`, `scripts/snapshot-ingest-log.mjs` (new), `data/ingest-log.js` (new), `.claude/skills/wiki-ingest/SKILL.md`.
+
+## v0.5.4 — Full-Article Document Type (2026-10-10)
+
+New optional `wiki-ingest` output: a `type: full-article` page (`wiki/articles/<Title>.md`) holding the complete article text, tagged `full-article`, with `sourceUrl:`/`sourceAuthor:` frontmatter — additive alongside the usual concept/entity extraction, not a replacement.
+
+- **Copyright boundary, decided explicitly with the user before building**: the full text stays private-vault-only. `scripts/snapshot-wiki.mjs` now has a dedicated `wiki/articles/` zone that exports only a short excerpt (`EXCERPT_LENGTH = 840` chars, 3x the original 280 — bumped for more context per the user's follow-up) plus `sourceUrl`/`sourceAuthor` — never the full body — so the public repo/app never carries a complete reproduction of externally-sourced copyrighted text. `concepts/`/`entities/`/`projects/` processing is unchanged (that content is original synthesis, already safe to publish in full).
+- **App**: `openArticle()` renders a "Read full article →" link (to `sourceUrl`) plus an author credit line when present, in a new `#rw-article-source` block above the body. New `--rw-type-full-article` color token gives full-article entries their own type-dot color, consistent with concept/entity/project.
+- No changes needed to `search()` or the Topics page's tag-pill filtering — both already work generically off `title`/`tags`/`type`/`body`, so `"full-article"` in `tags:` makes it filterable there for free.
+- Supersedes the earlier-parked "Surface Original Article + Author Credit" idea in `spec/PHASE2_PLAN.md` with this narrower, concrete design — see that doc for the updated section.
+
+Files touched: `index.html`, `research.css`, `research.js`, `scripts/snapshot-wiki.mjs`, `.claude/skills/wiki-ingest/SKILL.md`.
 
