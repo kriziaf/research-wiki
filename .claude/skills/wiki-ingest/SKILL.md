@@ -1,6 +1,6 @@
 ---
 name: wiki-ingest
-description: Finds a candidate article in the user's configured local source folders (e.g. an Obsidian "Clippings" inbox and a backup folder), then ingests it into their wiki vault — copying the raw source into the vault's raw/clippings/ zone and writing or updating frontmattered concept/entity/project pages in wiki/, following the zone model and governance rules in spec/WIKI_INGEST_SPEC.md. Always presents a plan and waits for explicit approval before writing anything. Use when the user says "ingest this," "add this to the wiki," "run wiki-ingest," or asks to bring a clipping/article into the research wiki vault.
+description: Ingests one or more local articles (found by title in the user's configured source folders, e.g. an Obsidian "Clippings" inbox and a backup folder, or given as explicit file paths directly) into their wiki vault — copying each raw source into the vault's raw/clippings/ zone and writing or updating frontmattered concept/entity/project pages in wiki/, following the zone model and governance rules in spec/WIKI_INGEST_SPEC.md. Handles files with partial or no frontmatter (synthesizes minimal metadata rather than fabricating a source). Always presents a plan and waits for explicit approval before writing anything. Use when the user says "ingest this," "add this to the wiki," "run wiki-ingest," "pick up [file(s)]," or asks to bring an article/clipping/note into the wiki vault.
 ---
 
 # Wiki Ingest
@@ -28,17 +28,23 @@ Read `.claude/wiki-ingest.local.json` (repo root). It looks like:
 
 If this file doesn't exist, ask the user for both paths, then write the file (it's gitignored — confirm with `git check-ignore .claude/wiki-ingest.local.json` if unsure — so it never gets committed).
 
-## Step 2 — Search
+## Step 2 — Search (or take explicit paths)
 
-Given a title or fragment from the user, search every `sourceFolders` entry recursively (case-insensitive) for matching `.md` filenames. Also check `vaultRoot/wiki/{concepts,entities,projects}/*.md` titles (frontmatter `title:` field, or filename) for an existing match — if found, say so; the user may still want to append new source material to it (see Step 5) rather than treating it as net-new.
+Two ways in:
+- **By title/fragment**: search every `sourceFolders` entry recursively (case-insensitive) for matching `.md` filenames.
+- **By explicit path(s)**: if the user gives one or more file paths directly (e.g. "pick up `/path/to/a.md` and `/path/to/b.md`"), use those verbatim — they don't have to live inside a configured `sourceFolders` entry. `sourceFolders` is a convenience for title-based search, not a restriction on what can be ingested.
+
+Either way, also check `vaultRoot/wiki/{concepts,entities,projects}/*.md` titles (frontmatter `title:` field, or filename) for an existing match — if found, say so; the user may still want to append new source material to it (see Step 5) rather than treating it as net-new.
 
 ## Step 3 — Disambiguate
 
-If more than one candidate file matches, list them with size and modified date (a short table is enough) and ask the user which one to use. Don't guess.
+If more than one candidate file matches a title/fragment search, list them with size and modified date (a short table is enough) and ask the user which one to use. Don't guess. (Not applicable when the user gave explicit paths — those are already disambiguated.)
 
 ## Step 4 — Analyze
 
-Read the chosen file. Identify 3–7 candidate concepts and 1–3 candidate entities worth their own wiki page (per the spec: "check existing `wiki/concepts/` and `wiki/entities/` for matches before creating duplicates"). For each candidate, check whether a same-titled page already exists under `wiki/concepts/` or `wiki/entities/` — if so, it's an **append**, not a new page.
+Read the chosen file(s) — more than one at a time is fine (e.g. two linked articles ingested together); when they're thematically related, let candidate concepts/entities cite and cross-link to each other, not just back to their own single source. Identify 3–7 candidate concepts and 1–3 candidate entities worth their own wiki page (per the spec: "check existing `wiki/concepts/` and `wiki/entities/` for matches before creating duplicates"). For each candidate, check whether a same-titled page already exists under `wiki/concepts/` or `wiki/entities/` — if so, it's an **append**, not a new page.
+
+**Sourceless files**: if a file has partial or no frontmatter — no `source:` URL, no `title:`, reads as an original note/reflection rather than an external clipping — don't fabricate a citation. Synthesize minimal frontmatter instead: `title` from the filename or an obvious first line, `created` as today, `type: note` (instead of the implicit clipping type), and simply omit `source:`/`author:` rather than inventing them. Say so explicitly in the Step 5 plan so the user can correct it if the file actually does have a source you missed.
 
 ## Step 5 — Present the plan, then stop
 
@@ -61,7 +67,7 @@ Execute exactly the plan as approved (or as revised in the follow-up). After wri
 
 ## Step 8 — Out of scope (v1)
 
-URL ingestion (the spec's `defuddle` reference) isn't implemented here — this skill only handles files already sitting in a configured `sourceFolders` entry, matching what's actually been used so far.
+URL ingestion (the spec's `defuddle` reference) isn't implemented here — this skill only handles files that already exist locally (whether found via `sourceFolders` search or given as explicit paths, per Step 2). Fetching and cleaning a live URL isn't built.
 
 ## Step 9 — Offer to refresh the deployed app's corpus
 
