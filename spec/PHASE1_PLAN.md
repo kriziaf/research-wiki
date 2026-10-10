@@ -1,6 +1,6 @@
 # Phase 1 Plan — Civic Tech Research Portal
 
-Status: **Phase 1 complete as of v0.5.0** (Curated Recommended topics + a pinned-answer fix for the search scorer, on top of v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
+Status: **Phase 1 complete as of v0.5.1** (Curated Recommended topics + a pinned-answer fix for the search scorer, on top of v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
 
 ## Source
 
@@ -143,6 +143,16 @@ New top-level screen reachable via the header's hamburger icon (`#rw-menu-btn`, 
 - **Card grid** — reuses the existing `.rw-result-card` component and a newly-factored `renderResultCard(d)` helper (previously inlined only in `renderRelated`, now shared) rather than introducing a new card design; responsive 3→2→1 column grid.
 - Fully integrated into the existing navigation stack: entering via the hamburger resets to a fresh `{screen:'topics'}` stack entry (same `fresh` pattern as `askQuery`), opening a card pushes an `article` entry on top of it, and `goBack()` correctly restores the topics screen (filter/search state preserved, since it lives in module-level vars, not the stack entry) when backing out of an article.
 - Adapted from a reference UI screenshot per the session's established pattern: reused this app's own card/pill/chip components and `--rw-*` tokens rather than copying the reference's literal visual styling (navy active-pill color, icon treatment, separate "Read the topic →" link text — the whole card is already clickable here, matching every other card in the app, so that link was dropped as redundant).
+
+Files touched: `index.html`, `research.css`, `research.js`.
+
+## v0.5.1 — Hamburger Dropdown Menu (2026-10-10)
+
+The hamburger icon (`#rw-menu-btn`), which v0.5.0 wired to navigate straight to the Topics page, now opens a dropdown menu instead: **Ask Wiki**, **Search Topics**, a divider, then **Log in** at the bottom.
+
+- "Ask Wiki" resets to the home/search screen using the same logic as the existing "New question" button (clear input, reset `stack`, focus input). "Search Topics" calls the existing `showTopics()` — no new navigation logic needed. "Log in" is an inert stub, matching the standalone `#rw-login-btn`'s existing behavior.
+- Menu closes on: selecting an item, clicking outside it (new `document` click listener), or Escape (extended the existing pane-closing Escape handler rather than adding a separate one).
+- Confirmed explicitly with the user: the standalone "Log in" button and avatar icon already in the top-right of the header are **unchanged** — this adds a second path to the same (still non-functional) Log in action, not a consolidation.
 
 Files touched: `index.html`, `research.css`, `research.js`.
 

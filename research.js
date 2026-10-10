@@ -8,7 +8,7 @@
 (function () {
   // Single source of truth for the footer's "Research Wiki Chat vX.Y.Z" label.
   // Bump this when spec/PHASE1_PLAN.md records a new version — nothing else to touch.
-  var APP_VERSION = '0.5.0';
+  var APP_VERSION = '0.5.1';
 
   var DOCS = window.WIKI_INDEX || [];
   var titleIndex = {};
@@ -534,7 +534,31 @@
     el('rw-input').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') askQuery(e.target.value, true);
     });
-    el('rw-menu-btn').addEventListener('click', showTopics);
+    el('rw-menu-btn').addEventListener('click', function (e) {
+      e.stopPropagation();
+      el('rw-menu-dropdown').classList.toggle('open');
+    });
+    document.addEventListener('click', function (e) {
+      var menu = el('rw-menu-dropdown');
+      if (!menu.classList.contains('open')) return;
+      if (menu.contains(e.target) || e.target === el('rw-menu-btn') || el('rw-menu-btn').contains(e.target)) return;
+      menu.classList.remove('open');
+    });
+    el('rw-menu-dropdown').querySelectorAll('[data-menu-action]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        el('rw-menu-dropdown').classList.remove('open');
+        var action = btn.dataset.menuAction;
+        if (action === 'home') {
+          el('rw-input').value = '';
+          stack = [];
+          showScreen('search');
+          el('rw-input').focus();
+        } else if (action === 'topics') {
+          showTopics();
+        }
+        // 'login' is an inert stub, same as #rw-login-btn — menu just closes.
+      });
+    });
     el('rw-topics-back').addEventListener('click', goBack);
     el('rw-topics-search-input').addEventListener('input', function (e) {
       topicSearchQuery = e.target.value;
@@ -570,6 +594,7 @@
       if (e.key !== 'Escape') return;
       if (layout.classList.contains('pane-open')) closePane();
       if (askLayout.classList.contains('pane-open')) closeAskPane();
+      el('rw-menu-dropdown').classList.remove('open');
     });
 
     el('rw-input').focus();

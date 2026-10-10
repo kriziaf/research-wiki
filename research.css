@@ -60,7 +60,7 @@
   display:flex; align-items:center; justify-content:space-between;
   padding:10px 20px; border-bottom:1px solid var(--rw-line);
 }
-.rw-topbar-left{ display:flex; align-items:center; gap:10px; }
+.rw-topbar-left{ display:flex; align-items:center; gap:10px; position:relative; }
 .rw-topbar-right{ display:flex; align-items:center; gap:16px; }
 .rw-wordmark{ font-family:var(--rw-font-display); font-weight:700; font-size:0.95rem; }
 .rw-doc-count{ font-size:0.78rem; color:var(--rw-muted-2); font-variant-numeric:tabular-nums; }
@@ -71,6 +71,19 @@
   background:transparent; color:var(--rw-ink); cursor:pointer;
 }
 .rw-icon-btn:hover{ background:var(--rw-surface-2); }
+
+.rw-menu-dropdown{
+  display:none; position:absolute; top:calc(100% + 8px); left:0; min-width:180px;
+  background:var(--rw-surface); border:1px solid var(--rw-line); border-radius:12px;
+  box-shadow:0 8px 24px var(--rw-shadow); padding:6px; z-index:20;
+}
+.rw-menu-dropdown.open{ display:block; }
+.rw-menu-item{
+  display:block; width:100%; text-align:left; padding:10px 12px; border:none;
+  background:none; border-radius:8px; font-size:0.88rem; color:var(--rw-ink); cursor:pointer;
+}
+.rw-menu-item:hover{ background:var(--rw-surface-2); }
+.rw-menu-divider{ border-top:1px solid var(--rw-line); margin:6px 0; }
 
 .rw-topbar-link{
   border:none; background:none; padding:0; font:inherit; cursor:pointer;

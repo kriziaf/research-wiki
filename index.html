@@ -19,9 +19,15 @@
         <div class="rw-shell">
             <header class="rw-topbar">
                 <div class="rw-topbar-left">
-                    <button class="rw-icon-btn" id="rw-menu-btn" aria-label="Browse topics" title="Browse topics" type="button">
+                    <button class="rw-icon-btn" id="rw-menu-btn" aria-label="Menu" title="Menu" type="button">
                         <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><line x1="2.5" y1="5.5" x2="17.5" y2="5.5"/><line x1="2.5" y1="10" x2="17.5" y2="10"/><line x1="2.5" y1="14.5" x2="17.5" y2="14.5"/></svg>
                     </button>
+                    <div class="rw-menu-dropdown" id="rw-menu-dropdown">
+                        <button type="button" class="rw-menu-item" data-menu-action="home">Ask Wiki</button>
+                        <button type="button" class="rw-menu-item" data-menu-action="topics">Search Topics</button>
+                        <div class="rw-menu-divider"></div>
+                        <button type="button" class="rw-menu-item" data-menu-action="login" title="Sign in — coming soon">Log in</button>
+                    </div>
                     <span class="rw-wordmark">Research Wiki</span>
                 </div>
                 <div class="rw-topbar-right">
