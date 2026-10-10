@@ -1,6 +1,6 @@
 # Phase 1 Plan — Civic Tech Research Portal
 
-Status: **v0.4.0 built** (Conversational answer preview + related follow-up topics, on top of v0.3.0's Related articles/Recent search history and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Ingest/Analyze not yet scoped to implementation detail.
+Status: **v0.4.1 built** (Curated Recommended topics + a pinned-answer fix for the search scorer, on top of v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Ingest/Analyze not yet scoped to implementation detail.
 
 ## Source
 
@@ -113,3 +113,10 @@ Files touched: `index.html`, `research.css`, `research.js`.
 - **Footer**: a subtle footer (`.rw-footer`) now runs along the bottom of every screen — "Created for Open Civic Tech" linking to opencivic.tech, and "Research Wiki Chat v`APP_VERSION`" on the right. `APP_VERSION` is a single constant at the top of `research.js`; bump it there when tagging a new version and the footer updates everywhere with no HTML changes.
 
 Files touched: `index.html`, `research.css`, `research.js`.
+
+## v0.4.1 — Curated Recommended Topics + Pinned-Answer Fix (2026-10-10)
+
+- **Curated Recommended topics**: the home screen's "Recommended" chips are no longer auto-picked (2 docs per type); `RECOMMENDED_TOPICS` in `research.js` now hardcodes the 6 user-specified questions (Civic.ai 6-Pack of Care, who maintains Smol Gardens, RAG vs. the LLM wiki pattern, Accountable AI, BetaNYC, vibecoding risks), each mapped to its real doc id and displayed as the full phrased question rather than the raw doc title.
+- **Pinned-answer correctness fix**: verifying the above surfaced a real bug — phrased questions like "Who is BetaNYC?" don't reliably rank their target doc first in the keyword `search()` scorer (common words like "who"/"is"/"the" dilute the score toward unrelated, longer docs; 3 of the 6 curated topics mis-resolved). This also silently affected the v0.4.0 follow-up-topic suggestion chips (same "What is X?"/"Who is X?" phrasing). Fixed generally: `askQuery(query, fresh, pinnedId)` gained an optional third argument; `buildAskResults(query, pinnedId)` pins the known target doc as the top answer while still running real search to populate the Sources chip around it. Back-navigation stack entries now also store `pinnedId` so re-rendering an earlier turn restores the same pinned doc. Verified all 6 Recommended topics and the follow-up-topic chips now resolve to the correct doc.
+
+Files touched: `research.js`.

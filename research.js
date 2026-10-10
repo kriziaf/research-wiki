@@ -8,7 +8,7 @@
 (function () {
   // Single source of truth for the footer's "Research Wiki Chat vX.Y.Z" label.
   // Bump this when PHASE1_PLAN.md records a new version — nothing else to touch.
-  var APP_VERSION = '0.4.0';
+  var APP_VERSION = '0.4.1';
 
   var DOCS = window.WIKI_INDEX || [];
   var titleIndex = {};
@@ -164,21 +164,28 @@
     window.scrollTo(0, 0);
   }
 
+  var RECOMMENDED_TOPICS = [
+    { id: 'concepts/civic.ai-6-pack-of-care', question: 'What is the Civic.ai 6-Pack of Care?' },
+    { id: 'projects/smol-gardens', question: 'Who maintains Smol Gardens?' },
+    { id: 'concepts/llm-wiki-pattern', question: 'RAG vs. the LLM wiki pattern' },
+    { id: 'concepts/accountable-ai', question: 'What is Accountable AI?' },
+    { id: 'entities/betanyc', question: 'Who is BetaNYC?' },
+    { id: 'concepts/vibecoding-risks-and-accountability', question: 'Risks of vibecoding in civic tech' }
+  ];
+
   function renderTryChips() {
-    var picks = [];
-    ['concept', 'entity', 'project'].forEach(function (type) {
-      var match = DOCS.filter(function (d) { return d.type === type; }).slice(0, 2);
-      picks = picks.concat(match);
-    });
+    var picks = RECOMMENDED_TOPICS
+      .map(function (t) { return { doc: docById[t.id], question: t.question }; })
+      .filter(function (p) { return p.doc; });
     var wrap = el('rw-try-chips');
-    wrap.innerHTML = picks.map(function (d) {
-      return '<button type="button" class="rw-chip" data-try="' + d.id + '">' +
-        '<span class="rw-type-dot ' + d.type + '"></span><span>' + escapeHtml(d.title) + '</span></button>';
+    wrap.innerHTML = picks.map(function (p) {
+      return '<button type="button" class="rw-chip" data-try="' + p.doc.id + '" data-question="' + escapeHtml(p.question) + '">' +
+        '<span class="rw-type-dot ' + p.doc.type + '"></span><span>' + escapeHtml(p.question) + '</span></button>';
     }).join('');
     wrap.querySelectorAll('[data-try]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        el('rw-input').value = docById[btn.dataset.try].title;
-        askQuery(docById[btn.dataset.try].title, true);
+        el('rw-input').value = btn.dataset.question;
+        askQuery(btn.dataset.question, true, btn.dataset.try);
       });
     });
   }
@@ -280,7 +287,13 @@
     });
   }
 
-  function askQuery(query, fresh) {
+  function buildAskResults(query, pinnedId) {
+    var pinned = pinnedId ? docById[pinnedId] : null;
+    var rest = search(query).filter(function (d) { return !pinned || d.id !== pinned.id; });
+    return pinned ? [pinned].concat(rest) : rest;
+  }
+
+  function askQuery(query, fresh, pinnedId) {
     query = query.trim();
     if (!query) {
       el('rw-hint').textContent = 'Enter a question.';
@@ -288,8 +301,8 @@
     }
     el('rw-hint').textContent = '';
     addRecent(query);
-    var results = search(query);
-    var entry = { screen: 'ask', query: query };
+    var results = buildAskResults(query, pinnedId);
+    var entry = { screen: 'ask', query: query, pinnedId: pinnedId || null };
     if (fresh) stack = [entry]; else stack.push(entry);
     renderAsk(query, results);
     showScreen('ask');
@@ -347,7 +360,7 @@
     }).join('');
     topicsRow.querySelectorAll('[data-topic]').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        askQuery(topicQuestion(docById[btn.dataset.topic]), false);
+        askQuery(topicQuestion(docById[btn.dataset.topic]), false, btn.dataset.topic);
       });
     });
   }
@@ -428,7 +441,7 @@
       renderRelated(relatedDoc, findRelated(relatedDoc));
       showScreen('related');
     } else if (prev.screen === 'ask') {
-      renderAsk(prev.query, search(prev.query));
+      renderAsk(prev.query, buildAskResults(prev.query, prev.pinnedId));
       showScreen('ask');
     } else if (prev.screen === 'article') {
       openArticle(prev.id, false);
