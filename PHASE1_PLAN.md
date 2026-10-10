@@ -1,6 +1,6 @@
 # Phase 1 Plan — Civic Tech Research Portal
 
-Status: **MVP1 built** (Search, Retrieve, View Article) — in its own repo as of 2026-10-10. Ingest/Analyze not yet scoped to implementation detail.
+Status: **v0.2.0 built** (Conversational Ask flow on top of MVP1's Search, Retrieve, View Article) — in its own repo as of 2026-10-10. Ingest/Analyze not yet scoped to implementation detail.
 
 ## Source
 
@@ -81,3 +81,18 @@ Tested end-to-end in browser against real data: search scoring (title/tag/type/b
 **Repo history note**: this was originally built inside `Marketing-RAG-Dashboard` (editing its `index.html`/`script.js` in place, e.g. `analyzeContent()`/`executeQuery()` at `script.js:618-635`). On 2026-10-10 it was split out into this standalone repo so it no longer overrides that repo's canonical marketing-dashboard prototype — `index.html`/`research.js` here are the real, current versions; any earlier line-number references to `script.js` describe the old (now-reverted) location, not this repo.
 
 Not yet built: Ingest (upload/paste → parse → categorize → save), Analyze (metrics dashboard), and a repeatable (non-manual) data pipeline.
+
+## v0.2.0 — Conversational Ask Flow (2026-10-10)
+
+Replaced the home screen's default behavior: submitting a question now drives a chat-style "ask" screen instead of the MVP1 results list, following `DESIGN_STYLE_GUIDE.md`'s approved search-console → cited-answer → split-pane pattern (previously only prototyped in `design-system-demo.html`).
+
+Behavior, built against the real 89-doc corpus (no LLM — still the same keyword `search()` scorer from MVP1):
+- The question is shown as a right-aligned chat bubble.
+- The top-scoring doc's body is rendered as the answer (markdown + `[[wikilink]]` rendering reused as-is from the article view).
+- A "Sources: X, Y +N more" chip summarizes the top matches (type-dot icons); clicking it, or any inline wikilink citation inside the answer, opens the existing split-pane source preview — generalized via a new shared `.rw-split-layout` CSS class so both the ask screen and the article screen drive the same preview/backdrop behavior. The preview's "Open full document →" CTA navigates into the full article screen.
+- A follow-up input appends new Q&A turns onto the same back-navigation stack (`askQuery(query, fresh)` — `fresh: true` from the home screen resets the stack, `fresh: false` from a follow-up pushes onto it), so "Back" steps through prior questions.
+- Home's chip section relabeled "Try one of these" → "Recommended" to match the design guide's component inventory.
+
+A tabbed "Ask Wiki" / "Classic Search" toggle was prototyped and explicitly rejected — the ask flow is the only entry point for now. The MVP1 results-list screen (`rw-screen-results`, `runSearch`/`renderResults` in `research.js`) is **not removed**, just currently unreachable from the UI, in case a dedicated classic-search entry point is reintroduced later.
+
+Files touched: `index.html`, `research.css`, `research.js`.

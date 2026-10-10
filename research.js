@@ -14,6 +14,7 @@
 
   var app = document.getElementById('research-app');
   var layout = document.getElementById('rw-article-layout');
+  var askLayout = document.getElementById('rw-ask-layout');
   var stack = []; // navigation history within the overlay: {screen, query?, id?}
 
   function el(id) { return document.getElementById(id); }
@@ -151,7 +152,7 @@
     wrap.querySelectorAll('[data-try]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         el('rw-input').value = docById[btn.dataset.try].title;
-        runSearch(docById[btn.dataset.try].title);
+        askQuery(docById[btn.dataset.try].title, true);
       });
     });
   }
@@ -188,6 +189,75 @@
     list.querySelectorAll('[data-open]').forEach(function (btn) {
       btn.addEventListener('click', function () { openArticle(btn.dataset.open, true); });
     });
+  }
+
+  function askQuery(query, fresh) {
+    query = query.trim();
+    if (!query) {
+      el('rw-hint').textContent = 'Enter a question.';
+      return;
+    }
+    el('rw-hint').textContent = '';
+    var results = search(query);
+    var entry = { screen: 'ask', query: query };
+    if (fresh) stack = [entry]; else stack.push(entry);
+    renderAsk(query, results);
+    showScreen('ask');
+  }
+
+  function renderAsk(query, results) {
+    closeAskPane();
+    el('rw-ask-question').textContent = query;
+    var top = results[0];
+    var sourcesChip = el('rw-ask-sources');
+    var body = el('rw-ask-body');
+
+    if (!top) {
+      sourcesChip.style.display = 'none';
+      body.innerHTML = '<p class="rw-empty-inline">No matches in the wiki yet. Try a different term, or one of the type names: concept, entity, project.</p>';
+      return;
+    }
+
+    var sourceDocs = results.slice(0, 4);
+    var dotStack = sourceDocs.slice(0, 3).map(function (d) {
+      return '<span class="rw-type-dot ' + d.type + '"></span>';
+    }).join('');
+    var names = sourceDocs.slice(0, 2).map(function (d) { return d.title; }).join(', ');
+    var extra = results.length > 2 ? ' +' + (results.length - 2) + ' more' : '';
+
+    sourcesChip.style.display = '';
+    sourcesChip.innerHTML =
+      '<span class="rw-dot-stack">' + dotStack + '</span>' +
+      '<span>Sources: ' + escapeHtml(names) + escapeHtml(extra) + '</span>' +
+      '<svg class="rw-sources-chip-chevron" width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 5l5 5-5 5"/></svg>';
+    sourcesChip.onclick = function () { openAskPreview(top.id); };
+
+    body.innerHTML = renderMarkdown(top.body);
+    body.querySelectorAll('.wikilink').forEach(function (btn) {
+      btn.addEventListener('click', function () { openAskPreview(btn.dataset.id); });
+    });
+  }
+
+  function openAskPreview(id) {
+    var doc = docById[id];
+    if (!doc) return;
+    el('rw-ask-preview').innerHTML =
+      '<div class="rw-preview-head"><span class="rw-preview-tag">' + doc.type + ' · ' + doc.id + '.md</span>' +
+      '<button type="button" class="rw-preview-close" id="rw-ask-preview-close" aria-label="Close">' +
+      '<svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="5" y1="5" x2="15" y2="15"/><line x1="15" y1="5" x2="5" y2="15"/></svg></button></div>' +
+      '<h4>' + escapeHtml(doc.title) + '</h4>' +
+      '<div class="rw-preview-meta">tags: ' + escapeHtml(doc.tags.join(', ')) + (doc.updated ? '<br>updated: ' + doc.updated : '') + '</div>' +
+      '<div class="rw-preview-snippet">' + escapeHtml(snippet(doc, 220)) + '</div>' +
+      '<button type="button" class="rw-preview-open" id="rw-ask-preview-open">Open full document →</button>';
+
+    el('rw-ask-preview-close').addEventListener('click', closeAskPane);
+    el('rw-ask-preview-open').addEventListener('click', function () { openArticle(id, true); });
+
+    askLayout.classList.add('pane-open');
+  }
+
+  function closeAskPane() {
+    askLayout.classList.remove('pane-open');
   }
 
   function openArticle(id, pushToStack) {
@@ -241,6 +311,9 @@
     if (prev.screen === 'results') {
       renderResults(prev.query, search(prev.query));
       showScreen('results');
+    } else if (prev.screen === 'ask') {
+      renderAsk(prev.query, search(prev.query));
+      showScreen('ask');
     } else if (prev.screen === 'article') {
       openArticle(prev.id, false);
     }
@@ -252,9 +325,9 @@
     el('rw-doc-count').textContent = DOCS.length + ' documents indexed';
     renderTryChips();
 
-    el('rw-send').addEventListener('click', function () { runSearch(el('rw-input').value); });
+    el('rw-send').addEventListener('click', function () { askQuery(el('rw-input').value, true); });
     el('rw-input').addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') runSearch(e.target.value);
+      if (e.key === 'Enter') askQuery(e.target.value, true);
     });
     el('rw-new-search').addEventListener('click', function () {
       el('rw-input').value = '';
@@ -264,8 +337,29 @@
     el('rw-back').addEventListener('click', goBack);
     el('rw-pane-backdrop').addEventListener('click', closePane);
 
+    el('rw-ask-back').addEventListener('click', goBack);
+    el('rw-new-question').addEventListener('click', function () {
+      el('rw-input').value = '';
+      stack = [];
+      showScreen('search');
+      el('rw-input').focus();
+    });
+    el('rw-ask-pane-backdrop').addEventListener('click', closeAskPane);
+    el('rw-followup-send').addEventListener('click', function () {
+      askQuery(el('rw-followup-input').value, false);
+      el('rw-followup-input').value = '';
+    });
+    el('rw-followup-input').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        askQuery(e.target.value, false);
+        e.target.value = '';
+      }
+    });
+
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && layout.classList.contains('pane-open')) closePane();
+      if (e.key !== 'Escape') return;
+      if (layout.classList.contains('pane-open')) closePane();
+      if (askLayout.classList.contains('pane-open')) closeAskPane();
     });
 
     el('rw-input').focus();

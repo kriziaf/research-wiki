@@ -29,20 +29,55 @@
                             <path d="M12 13c0-5 4-7 8-7 0 5-2 8-8 7Z"/>
                         </svg>
                         <h1>Ask the research wiki</h1>
-                        <p>Search concepts, entities, and projects synthesized from the ingested vault — every result links back to its source document.</p>
+                        <p>Ask about civic tech, AI ethics, or SLMs — every answer traces back to a source document from the ingested vault.</p>
                     </div>
 
                     <div class="rw-search-pill">
-                        <input id="rw-input" type="text" placeholder="Search for a concept, entity, or project…" />
-                        <button class="rw-send" id="rw-send" aria-label="Search" type="button">
+                        <input id="rw-input" type="text" placeholder="Ask about civic tech, AI ethics, or SLMs…" />
+                        <button class="rw-send" id="rw-send" aria-label="Ask" type="button">
                             <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3l12 7-12 7V3Z"/></svg>
                         </button>
                     </div>
                     <p class="rw-hint" id="rw-hint"></p>
 
                     <div class="rw-section">
-                        <div class="rw-section-label">Try one of these</div>
+                        <div class="rw-section-label">Recommended</div>
                         <div class="rw-chip-grid" id="rw-try-chips"></div>
+                    </div>
+                </section>
+
+                <!-- ===== ask (conversational) screen ===== -->
+                <section class="rw-screen rw-screen-ask">
+                    <div class="rw-article-subbar">
+                        <button class="rw-back" id="rw-ask-back" type="button">
+                            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 4.5L6 10l6.5 5.5"/></svg>
+                            Back
+                        </button>
+                        <button class="rw-new-question" id="rw-new-question" type="button">New question</button>
+                    </div>
+
+                    <div class="rw-ask-layout rw-split-layout" id="rw-ask-layout">
+                        <div class="rw-ask-col">
+                            <div class="rw-q-bubble-row">
+                                <div class="rw-q-bubble" id="rw-ask-question"></div>
+                            </div>
+
+                            <button type="button" class="rw-sources-chip" id="rw-ask-sources"></button>
+
+                            <div class="rw-body" id="rw-ask-body"></div>
+
+                            <div class="rw-followup">
+                                <input id="rw-followup-input" type="text" placeholder="Ask a follow-up…" />
+                                <button class="rw-send" id="rw-followup-send" aria-label="Ask follow-up" type="button">
+                                    <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3l12 7-12 7V3Z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="rw-pane-backdrop" id="rw-ask-pane-backdrop"></div>
+                        <aside class="rw-preview-wrap">
+                            <div class="rw-preview" id="rw-ask-preview"></div>
+                        </aside>
                     </div>
                 </section>
 
@@ -67,7 +102,7 @@
                         </button>
                     </div>
 
-                    <div class="rw-article-layout" id="rw-article-layout">
+                    <div class="rw-article-layout rw-split-layout" id="rw-article-layout">
                         <div class="rw-article-col">
                             <div class="rw-article-meta-row" id="rw-article-meta"></div>
                             <h3 id="rw-article-title"></h3>
