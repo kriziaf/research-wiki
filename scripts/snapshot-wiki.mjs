@@ -3,14 +3,30 @@
 // MVP1 search/retrieve/view test. Not wired into any build step — rerun by
 // hand (`node scripts/snapshot-wiki.mjs`) when the vault changes.
 //
-// Source: /Users/krizfernux/Obsidian Vault/ant-colony/wiki-site/wiki/
-// See PHASE1_PLAN.md "MVP 1" section for why this is a manual snapshot
+// Source: <vaultRoot>/wiki/ — vaultRoot comes from the gitignored
+// .claude/wiki-ingest.local.json (see .claude/skills/wiki-ingest/SKILL.md),
+// so no personal path is hardcoded in this committed script.
+// See spec/PHASE1_PLAN.md "MVP 1" section for why this is a manual snapshot
 // rather than the repeatable export-script approach.
 
 import fs from 'node:fs';
 import path from 'node:path';
 
-const VAULT_WIKI_ROOT = '/Users/krizfernux/Obsidian Vault/ant-colony/wiki-site/wiki';
+const CONFIG_FILE = new URL('../.claude/wiki-ingest.local.json', import.meta.url);
+const FALLBACK_VAULT_ROOT = '/Users/krizfernux/Obsidian Vault/ant-colony/wiki-site';
+
+function loadVaultRoot() {
+  try {
+    const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+    if (config.vaultRoot) return config.vaultRoot;
+  } catch {
+    // no local config yet — fall back below
+  }
+  console.warn(`No .claude/wiki-ingest.local.json found; falling back to ${FALLBACK_VAULT_ROOT}`);
+  return FALLBACK_VAULT_ROOT;
+}
+
+const VAULT_WIKI_ROOT = path.join(loadVaultRoot(), 'wiki');
 const ZONES = ['concepts', 'entities', 'projects'];
 const OUT_FILE = new URL('../data/wiki-index.js', import.meta.url);
 
