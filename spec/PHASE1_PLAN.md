@@ -1,6 +1,6 @@
 # Phase 1 Plan — Civic Tech Research Portal
 
-Status: **Phase 1 complete as of v0.5.7** (Search autocomplete type-ahead for the Ask bar, on top of v0.5.6's wikilink-tightened Related Articles, v0.5.5's structured original summaries, v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
+Status: **Phase 1 complete as of v0.5.8** (fixed a white body-margin gap around the app background, on top of v0.5.7's search autocomplete, v0.5.6's wikilink-tightened Related Articles, v0.5.5's structured original summaries, v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
 
 ## Source
 
@@ -260,4 +260,13 @@ Built the type-ahead idea logged in `spec/PHASE2_PLAN.md`, following its design 
 - **Verified live in-browser** (not just `node --check`): typed a query, saw ranked matches with type-dots, arrow-key navigation + Enter selection worked, clear icon appeared/cleared correctly, outside-click closed the dropdown without submitting, and Back now returns to a genuinely empty input.
 
 Files touched: `index.html`, `research.css`, `research.js`.
+
+## v0.5.8 — Fix White Body-Margin Gap (2026-10-11)
+
+User asked why there was white padding around the site. `research.css` only ever styled `#research-app` (background `var(--rw-ground)`, `min-height:100vh`) and never touched `html`/`body` — the browser's default user-agent stylesheet gives `body` its own `8px` margin, and since `body`'s background was left at the default white, that unstyled margin showed through as a white border around the app's actual mint-green background. Pre-existing since the app's first version; just not visually obvious until now.
+
+- Added `html, body{ margin:0; padding:0; }` once, at the top of `research.css`, ahead of the `#research-app` block. `#research-app` is `body`'s sole direct child and already stretches full-width/`min-height:100vh`, so removing the margin alone closes the gap on all sides — no need to duplicate the `--rw-ground` color onto `body` itself.
+- Verified live in-browser: background now fills edge-to-edge.
+
+Files touched: `research.css`.
 

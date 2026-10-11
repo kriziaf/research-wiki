@@ -3,6 +3,8 @@
    (see spec/DESIGN_STYLE_GUIDE.md, approved 2026-10-10)
    ============================================================ */
 
+html, body{ margin:0; padding:0; }
+
 #research-app{
   --rw-ground:#F4F6F3;
   --rw-surface:#FFFFFF;
