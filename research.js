@@ -8,13 +8,29 @@
 (function () {
   // Single source of truth for the footer's "Smol Wiki Chat vX.Y.Z" label.
   // Bump this when spec/PHASE1_PLAN.md records a new version — nothing else to touch.
-  var APP_VERSION = '0.5.5';
+  var APP_VERSION = '0.5.6';
 
   var DOCS = window.WIKI_INDEX || [];
   var titleIndex = {};
   DOCS.forEach(function (d) { titleIndex[d.title.toLowerCase()] = d; });
   var docById = {};
   DOCS.forEach(function (d) { docById[d.id] = d; });
+
+  // Symmetric [[wikilink]] adjacency: an author connecting A to B is evidence
+  // both ways are "related," regardless of which page did the linking.
+  var wikilinkGraph = {};
+  DOCS.forEach(function (d) { wikilinkGraph[d.id] = {}; });
+  DOCS.forEach(function (d) {
+    var matches = d.body.match(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g) || [];
+    matches.forEach(function (m) {
+      var target = m.replace(/^\[\[/, '').replace(/\]\]$/, '').split('|')[0].trim();
+      var targetDoc = titleIndex[target.toLowerCase()];
+      if (targetDoc && targetDoc.id !== d.id) {
+        wikilinkGraph[d.id][targetDoc.id] = true;
+        wikilinkGraph[targetDoc.id][d.id] = true;
+      }
+    });
+  });
 
   var app = document.getElementById('research-app');
   var layout = document.getElementById('rw-article-layout');
@@ -193,14 +209,18 @@
   function findRelated(doc) {
     var tagSet = {};
     doc.tags.forEach(function (t) { tagSet[t] = true; });
+    var linked = wikilinkGraph[doc.id] || {};
     var scored = DOCS.filter(function (d) { return d.id !== doc.id; }).map(function (d) {
       var score = 0;
       d.tags.forEach(function (t) { if (tagSet[t]) score += 3; });
       if (d.type === doc.type) score += 1;
-      return { doc: d, score: score };
+      return { doc: d, score: score, isLinked: !!linked[d.id] };
     });
-    return scored
-      .filter(function (s) { return s.score > 0; })
+    var linkedResults = scored.filter(function (s) { return s.isLinked; });
+    // Prefer real [[wikilink]] connections over coincidental tag overlap;
+    // only fall back to tag-overlap when a page has no wikilinked pages at all.
+    var pool = linkedResults.length ? linkedResults : scored.filter(function (s) { return s.score > 0; });
+    return pool
       .sort(function (a, b) { return b.score - a.score; })
       .slice(0, 12)
       .map(function (s) { return s.doc; });

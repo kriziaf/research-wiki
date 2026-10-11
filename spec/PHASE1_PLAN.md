@@ -1,6 +1,6 @@
 # Phase 1 Plan — Civic Tech Research Portal
 
-Status: **Phase 1 complete as of v0.5.5** (Curated Recommended topics + a pinned-answer fix for the search scorer, on top of v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
+Status: **Phase 1 complete as of v0.5.6** (Related Articles tightened to real wikilink connections, on top of v0.5.5's structured original summaries, v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
 
 ## Source
 
@@ -215,4 +215,14 @@ Prompted by the user asking "are the 5 Humanities concepts wikilinked?" — they
 - **`.claude/skills/wiki-ingest/SKILL.md`**: added a "Smart wikilinking" guideline to Step 4 (use `[[Title]]` for a plain link; only use `[[Title|display]]` when `display` is an accurate label for that target; prefer no link or italic prose over a wrong alias) and a new **Step 9 — Verify tags and wikilinks before publishing**, run before either snapshot script: re-check every touched page's tags against the Step 4 rule, and `grep -o "\[\[[^]]*\]\]"` every touched page to confirm each alias/target is accurate and resolves to a real page. The former Step 9 (offer to refresh the deployed app's corpus) is renumbered to Step 10; two stale "(Step 9)" cross-references inside Step 4's full-article section were corrected to "(Step 10)".
 
 Files touched: `.claude/skills/wiki-ingest/SKILL.md`, `data/wiki-index.js`.
+
+## v0.5.6 — Related Articles Tightened to Real Wikilink Connections (2026-10-10)
+
+`findRelated(doc)` previously scored "related" by tag overlap and type match alone, which surfaced coincidental matches with no real connection (e.g. "Critical AI Literacy" pulled in 82 loosely tag-matched docs, including things like "Workshop Hosting and Facilitation"). Prompted by the user asking to tighten this to actual `[[wikilink]]` connections. Scoped deliberately to only the Related Articles screen and the Ask flow's 3 follow-up topic chips — `search()` and the Ask flow's Sources chip are unchanged, since those answer a typed query rather than browse relationships.
+
+- **New symmetric wikilink adjacency map** built once at init alongside `titleIndex`/`docById`, reusing the existing `[[Target\|alias]]` extraction pattern from `renderInline()`. A→B and B→A both count as "related," regardless of which page authored the link.
+- **`findRelated(doc)` rewritten**: if a doc has any wikilink-connected pages, the result set is *only* those (ranked by the existing tag/type score as a tiebreaker). The one doc in the corpus with zero real wikilink connections (`The Humanities Are the Moat`, the full-article page) falls back to the old tag-overlap scoring, so the feature never goes empty.
+- Verified against the real 101-doc corpus: "Critical AI Literacy" went from 82 tag-matched results down to its 5 actual wikilinked pages; the zero-link full-article page still returns 5 tag-fallback results instead of an empty state.
+
+Files touched: `research.js`.
 
