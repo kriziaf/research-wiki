@@ -55,3 +55,5 @@ Originally parked here as a generic "add citations to every doc" task. **Superse
 **Copyright boundary, decided explicitly with the user**: the full article text itself stays **private-vault-only** (`wiki/articles/`, never committed to this repo). `scripts/snapshot-wiki.mjs` exports only a short excerpt + `sourceUrl`/`sourceAuthor` for this type — the public app/repo never carries a full reproduction of externally-sourced copyrighted text, only a credited excerpt and a "Read full article →" link to the real source.
 
 **Not done by this pass**: retroactively adding `sourceUrl`/`sourceAuthor` to the 98 existing concept/entity pages, or normalizing the legacy raw-clipping schema inconsistency — both stay genuinely deferred/optional if wanted later.
+
+Recurring vault-maintenance ideas (not one-off features) now live in [`OPTIMIZATION_TASK_LOG.md`](./OPTIMIZATION_TASK_LOG.md) — see the Tag Category Review Skill entry there.
