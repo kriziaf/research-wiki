@@ -1,6 +1,6 @@
 # Phase 1 Plan — Civic Tech Research Portal
 
-Status: **Phase 1 complete as of v0.5.8** (fixed a white body-margin gap around the app background, on top of v0.5.7's search autocomplete, v0.5.6's wikilink-tightened Related Articles, v0.5.5's structured original summaries, v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
+Status: **Phase 1 complete as of v0.5.9** (hash-based page routing + a local page-view tracking hook, on top of v0.5.8's body-margin fix, v0.5.7's search autocomplete, v0.5.6's wikilink-tightened Related Articles, v0.5.5's structured original summaries, v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
 
 ## Source
 
@@ -269,4 +269,18 @@ User asked why there was white padding around the site. `research.css` only ever
 - Verified live in-browser: background now fills edge-to-edge.
 
 Files touched: `research.css`.
+
+## v0.5.9 — Hash-Based Page Routing + Page-View Tracking Hook (2026-10-11)
+
+User asked to plan page routing to track page views across nav item pages (Topics, Ingest Log, home), Ask Wiki results, and source document pages. Previously the app never changed the URL at all — navigation was purely in-memory via the existing `stack` array and `showScreen()`. Scoped explicitly to routing + a local tracking hook, not a third-party analytics script (confirmed with the user before building).
+
+- **Hash routing, not `pushState`**: chosen because this is a static site with no build step and no locked-in host yet (per `PHASE2_PLAN.md`) — a `#/...` fragment needs zero server-side SPA-fallback configuration, unlike `pushState`, so it works identically on any static host.
+- **Routes**: `` (home), `#/topics`, `#/ingest-log`, `#/ask?q=<query>&pin=<id>`, `#/article/<id>`, `#/related/<id>` — `routeFor()`/`parseRoute()` serialize/deserialize these from the same `{screen, query?, id?, pinnedId?}` shape the `stack` already used.
+- **`trackPageView(entry)`**: the single hook point — logs to console and appends to a capped (200) `localStorage['rw-pageviews']` array. No real analytics service wired in; swapping one in later means editing this one function.
+- **`setRoute(entry)`** updates the hash (skipping no-op calls) and tracks a view; wired into every existing forward-navigation call site (`askQuery`, `showRelated`, `showTopics`, `showIngestLog`, and `openArticle` when `pushToStack` is true) — same places that already mutated `stack`, no new call sites invented.
+- **`goBack()` simplified**: its render-reconstruction logic was factored out into a reusable `renderFromRouteEntry()`, now also used by a new `hashchange` listener (handles real browser Back/Forward button presses — previously a no-op, now actually re-renders the matching screen) and by initial-load deep-link handling. A `suppressNextHashChange` flag stops our own `setRoute` calls from being double-processed by that listener.
+- **Deliberately out of scope**: the inline preview panes (`openPreview`/`openAskPreview`) stay untracked — they're a peek, not a full page view.
+- **Verified live in-browser**, not just `node --check`: hash updated correctly across Topics → an article → its Related Articles; `localStorage['rw-pageviews']` showed exactly one entry per navigation; native Back/Forward buttons now actually change the visible screen and log exactly one view per press; a fresh tab opened directly to an `#/article/...` URL deep-linked correctly; clicking a wikilink's inline preview confirmed to leave the hash and page-view log untouched.
+
+Files touched: `research.js`.
 

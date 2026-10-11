@@ -8,7 +8,7 @@
 (function () {
   // Single source of truth for the footer's "Smol Wiki Chat vX.Y.Z" label.
   // Bump this when spec/PHASE1_PLAN.md records a new version — nothing else to touch.
-  var APP_VERSION = '0.5.8';
+  var APP_VERSION = '0.5.9';
 
   var DOCS = window.WIKI_INDEX || [];
   var titleIndex = {};
@@ -284,9 +284,11 @@
   }
 
   function showRelated(doc) {
-    stack.push({ screen: 'related', id: doc.id });
+    var entry = { screen: 'related', id: doc.id };
+    stack.push(entry);
     renderRelated(doc, findRelated(doc));
     showScreen('related');
+    setRoute(entry);
   }
 
   /* ---------------- topics (browse by tag) ---------------- */
@@ -355,6 +357,7 @@
     renderTopicPills();
     renderTopicGrid();
     showScreen('topics');
+    setRoute({ screen: 'topics' });
   }
 
   /* ---------------- ingest log ---------------- */
@@ -394,6 +397,7 @@
     stack = [{ screen: 'ingest-log' }];
     renderIngestLog();
     showScreen('ingest-log');
+    setRoute({ screen: 'ingest-log' });
   }
 
   function renderResultCard(d) {
@@ -492,6 +496,7 @@
     if (fresh) stack = [entry]; else stack.push(entry);
     renderAsk(query, results);
     showScreen('ask');
+    setRoute(entry);
   }
 
   function topicQuestion(doc) {
@@ -606,6 +611,7 @@
     });
 
     showScreen('article');
+    if (pushToStack) setRoute({ screen: 'article', id: id });
   }
 
   function openPreview(id) {
@@ -630,33 +636,106 @@
     layout.classList.remove('pane-open');
   }
 
-  function goBack() {
-    stack.pop();
-    var prev = stack[stack.length - 1];
-    if (!prev) {
+  /* ---------------- routing + page-view tracking ---------------- */
+
+  var PAGEVIEWS_KEY = 'rw-pageviews';
+  var PAGEVIEWS_MAX = 200;
+  var suppressNextHashChange = false;
+
+  // Fragment only, no leading '#' (location.hash adds it on assignment,
+  // and we strip it back off when reading location.hash in parseRoute).
+  function routeFor(entry) {
+    if (!entry || entry.screen === 'search') return '';
+    if (entry.screen === 'topics') return '/topics';
+    if (entry.screen === 'ingest-log') return '/ingest-log';
+    if (entry.screen === 'article') return '/article/' + entry.id;
+    if (entry.screen === 'related') return '/related/' + entry.id;
+    if (entry.screen === 'ask') {
+      var params = new URLSearchParams();
+      params.set('q', entry.query || '');
+      if (entry.pinnedId) params.set('pin', entry.pinnedId);
+      return '/ask?' + params.toString();
+    }
+    return '';
+  }
+
+  function parseRoute(hash) {
+    var h = (hash || '').replace(/^#/, '');
+    if (!h || h === '/') return { screen: 'search' };
+    if (h === '/topics') return { screen: 'topics' };
+    if (h === '/ingest-log') return { screen: 'ingest-log' };
+    var articleMatch = h.match(/^\/article\/(.+)$/);
+    if (articleMatch) return { screen: 'article', id: articleMatch[1] };
+    var relatedMatch = h.match(/^\/related\/(.+)$/);
+    if (relatedMatch) return { screen: 'related', id: relatedMatch[1] };
+    var askMatch = h.match(/^\/ask\?(.*)$/);
+    if (askMatch) {
+      var params = new URLSearchParams(askMatch[1]);
+      return { screen: 'ask', query: params.get('q') || '', pinnedId: params.get('pin') || null };
+    }
+    return { screen: 'search' };
+  }
+
+  function trackPageView(entry) {
+    var path = routeFor(entry) || '/';
+    console.log('[pageview]', path);
+    try {
+      var views = JSON.parse(localStorage.getItem(PAGEVIEWS_KEY) || '[]');
+      views.push({ path: path, screen: entry.screen, ts: Date.now() });
+      if (views.length > PAGEVIEWS_MAX) views = views.slice(views.length - PAGEVIEWS_MAX);
+      localStorage.setItem(PAGEVIEWS_KEY, JSON.stringify(views));
+    } catch (e) {
+      // localStorage unavailable (private mode, quota) - tracking is best-effort.
+    }
+  }
+
+  // Sets the hash to match `entry` and logs one page view, but only if the
+  // route actually changed - repeated calls for the same screen are no-ops.
+  function setRoute(entry) {
+    var path = routeFor(entry);
+    var current = location.hash.replace(/^#/, '');
+    if (current === path) return;
+    suppressNextHashChange = true;
+    location.hash = path;
+    trackPageView(entry);
+  }
+
+  // Render-only reconstruction of a screen from a route entry - no stack
+  // mutation, no hash mutation. Used by goBack() (unchanged from before this
+  // feature existed) and by hash-driven navigation (back/forward button,
+  // deep links, page refresh), which update the hash themselves beforehand.
+  function renderFromRouteEntry(entry) {
+    if (entry.screen === 'topics') {
+      renderTopicPills();
+      renderTopicGrid();
+      showScreen('topics');
+    } else if (entry.screen === 'ingest-log') {
+      renderIngestLog();
+      showScreen('ingest-log');
+    } else if (entry.screen === 'related') {
+      var relatedDoc = docById[entry.id];
+      if (!relatedDoc) { renderFromRouteEntry({ screen: 'search' }); return; }
+      renderRelated(relatedDoc, findRelated(relatedDoc));
+      showScreen('related');
+    } else if (entry.screen === 'ask') {
+      renderAsk(entry.query, buildAskResults(entry.query, entry.pinnedId));
+      showScreen('ask');
+    } else if (entry.screen === 'article') {
+      if (!docById[entry.id]) { renderFromRouteEntry({ screen: 'search' }); return; }
+      openArticle(entry.id, false);
+    } else {
       el('rw-input').value = '';
       el('rw-clear-input').style.display = 'none';
       closeAutocomplete();
       showScreen('search');
-      return;
     }
-    if (prev.screen === 'topics') {
-      renderTopicPills();
-      renderTopicGrid();
-      showScreen('topics');
-    } else if (prev.screen === 'ingest-log') {
-      renderIngestLog();
-      showScreen('ingest-log');
-    } else if (prev.screen === 'related') {
-      var relatedDoc = docById[prev.id];
-      renderRelated(relatedDoc, findRelated(relatedDoc));
-      showScreen('related');
-    } else if (prev.screen === 'ask') {
-      renderAsk(prev.query, buildAskResults(prev.query, prev.pinnedId));
-      showScreen('ask');
-    } else if (prev.screen === 'article') {
-      openArticle(prev.id, false);
-    }
+  }
+
+  function goBack() {
+    stack.pop();
+    var prev = stack[stack.length - 1] || { screen: 'search' };
+    renderFromRouteEntry(prev);
+    setRoute(prev);
   }
 
   /* ---------------- init ---------------- */
@@ -772,6 +851,25 @@
       if (askLayout.classList.contains('pane-open')) closeAskPane();
       el('rw-menu-dropdown').classList.remove('open');
     });
+
+    window.addEventListener('hashchange', function () {
+      if (suppressNextHashChange) { suppressNextHashChange = false; return; }
+      var entry = parseRoute(location.hash);
+      stack = [entry];
+      renderFromRouteEntry(entry);
+      trackPageView(entry);
+    });
+
+    // Initial load: honor a deep link / refreshed URL if present, otherwise
+    // the home screen (already showing by default) is itself the first view.
+    if (location.hash) {
+      var initialEntry = parseRoute(location.hash);
+      stack = [initialEntry];
+      renderFromRouteEntry(initialEntry);
+      trackPageView(initialEntry);
+    } else {
+      trackPageView({ screen: 'search' });
+    }
 
     el('rw-input').focus();
   }
