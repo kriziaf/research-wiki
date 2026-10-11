@@ -197,12 +197,13 @@ Follow-on to v0.5.4: the mechanical 840-char excerpt wasn't a good summary — "
 
 Files touched: `scripts/snapshot-wiki.mjs`, `.claude/skills/wiki-ingest/SKILL.md`.
 
-## Smart Tagging Guidance + Humanities Tag Fixes (content/skill-doc only, 2026-10-10)
+## Smart Tagging Guidance + Humanities Tag Fixes + Recommended Chip Swap (content/small UI tweak, 2026-10-10)
 
-No app code changed — content/vault edits plus a `wiki-ingest` guidance addition, same pattern as the earlier concept restructuring (no `APP_VERSION` bump).
+Mostly content/vault edits plus a `wiki-ingest` guidance addition (same pattern as the earlier concept restructuring — no `APP_VERSION` bump), plus one small, unrelated `research.js` edit bundled into the same commit.
 
 - **Tags applied**: `skills-erosion` (new to the corpus) added to `Automation and the Erosion of Practiced Judgment` and the full-article page; `critical-thinking` added to `Humanities Defunding and the AI Skills Gap` and the full-article page (the other 4 Humanities-related concept pages already had it).
 - **`.claude/skills/wiki-ingest/SKILL.md`** gained a "Smart tagging" guideline in Step 4, prompted by the real problem found during the Topics page work (196 unique tags, 126 single-use): check the existing vocabulary before inventing a tag, reason from four loose categories (Domain / Skill-Capability / Mechanism-Phenomenon / Format) rather than free-associating, and cap at 3–5 tags per page.
+- **Recommended chip swap**: `RECOMMENDED_TOPICS` in `research.js` — "Risks of vibecoding in civic tech" replaced with "What is Critical AI Literacy?" (`concepts/critical-ai-literacy`). Note the v0.4.1 entry above still describes the original 6-topic set as it shipped then; this is the one topic that's since changed.
 
-Files touched: `.claude/skills/wiki-ingest/SKILL.md`.
+Files touched: `.claude/skills/wiki-ingest/SKILL.md`, `research.js`.
 
