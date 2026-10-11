@@ -57,3 +57,15 @@ Originally parked here as a generic "add citations to every doc" task. **Superse
 **Not done by this pass**: retroactively adding `sourceUrl`/`sourceAuthor` to the 98 existing concept/entity pages, or normalizing the legacy raw-clipping schema inconsistency — both stay genuinely deferred/optional if wanted later.
 
 Recurring vault-maintenance ideas (not one-off features) now live in [`OPTIMIZATION_TASK_LOG.md`](./OPTIMIZATION_TASK_LOG.md) — see the Tag Category Review Skill entry there.
+
+## Search Autocomplete — type-ahead matching existing entries (idea, not yet built, 2026-10-11)
+
+As the user types in the search/Ask bar (`#rw-input`), show a live dropdown of matching existing titles/tags from the corpus (`DOCS` in `research.js`) — not full search results, a lightweight type-ahead that narrows toward a real entry before they even submit.
+
+**Design reference**: a screenshot the user provided of a Google-style "Ask anything" bar — pill-shaped input, autocomplete suggestions listed below it once typing starts, each row prefixed with a small icon. Two deliberate deviations from the reference, called out explicitly by the user:
+- **Only build the clear ("×") icon**, shown on the right once there's text in the input, to reset the field.
+- **Leave out both the mic icon and the "+" icon** from the reference image — not part of this app's interaction model, don't add them just because the reference has them.
+
+Today `#rw-input` (`index.html`) is a bare input with no icons at all, so this is additive: the clear icon plus the new dropdown, nothing removed from current behavior.
+
+**Open questions for when this gets built**: match against title substrings only, or tags too (reuse `search()`'s existing scoring in `research.js` rather than inventing a second matcher); how many suggestions to show; keyboard nav (arrow keys + enter) alongside mouse click.
