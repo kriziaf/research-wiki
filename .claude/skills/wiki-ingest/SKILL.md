@@ -50,6 +50,22 @@ Read the chosen file(s) — more than one at a time is fine (e.g. two linked art
 
 **This page is private-vault-only by design** — it must never be treated as something that flows into the public app at full length. `scripts/snapshot-wiki.mjs` enforces this on the export side (Step 9), but don't undermine that here either: never paste the full article text into your own chat response when proposing or confirming this plan — describe it by title/word-count, the way you would any other file write.
 
+**Write a structured summary in the body — an original synthesis, not a truncated quote.** This is what the public app actually shows for a full-article entry, so it needs to earn its place. Structure it like a concept page's opening (Step 4's synthesis pattern), not a Reddit-Answers-style multi-source round-up:
+
+```markdown
+## <short headline naming what the topic is>
+
+**<Bold claim 1, your own words>.** <short supporting clause — at most a few words of direct quote if any, never a reproduced sentence or paragraph>
+
+**<Bold claim 2>.** <...>
+
+<!-- FULL ARTICLE TEXT BELOW — PRIVATE VAULT ONLY, NEVER EXPORTED -->
+
+<complete article text, verbatim, as before>
+```
+
+The marker line is load-bearing: `scripts/snapshot-wiki.mjs` splits on it and exports only what's above it (Step 9). Everything below stays private-vault-only. Explain *why the topic matters* — stakes, the argument's shape, who should care — in 2–4 bullet-style claims; never paraphrase-by-truncation. Include the summary text in the Step 5 plan like any other content, so the user can see and approve the actual wording before it's written.
+
 ## Step 5 — Present the plan, then stop
 
 Before writing anything, list exactly what will happen:

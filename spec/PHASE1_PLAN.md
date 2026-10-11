@@ -1,6 +1,6 @@
 # Phase 1 Plan — Civic Tech Research Portal
 
-Status: **Phase 1 complete as of v0.5.4** (Curated Recommended topics + a pinned-answer fix for the search scorer, on top of v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
+Status: **Phase 1 complete as of v0.5.5** (Curated Recommended topics + a pinned-answer fix for the search scorer, on top of v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
 
 ## Source
 
@@ -184,4 +184,16 @@ New optional `wiki-ingest` output: a `type: full-article` page (`wiki/articles/<
 - Supersedes the earlier-parked "Surface Original Article + Author Credit" idea in `spec/PHASE2_PLAN.md` with this narrower, concrete design — see that doc for the updated section.
 
 Files touched: `index.html`, `research.css`, `research.js`, `scripts/snapshot-wiki.mjs`, `.claude/skills/wiki-ingest/SKILL.md`.
+
+## v0.5.5 — Structured Original Summaries for Full-Article Pages (2026-10-10)
+
+Follow-on to v0.5.4: the mechanical 840-char excerpt wasn't a good summary — "not very good summaries as they are written today." Replaced with an original, structured synthesis instead of a longer verbatim slice, modeled on a Reddit-Answers-style reference (headline + bold-lead-in claims), adapted for a single-source article rather than multi-source aggregation.
+
+- **New body structure for `wiki/articles/<Title>.md`**: a short original summary (headline + 2–4 bold-claim bullets explaining why the topic matters, in the ingest author's own words — at most a short fragment of direct quote, never a reproduced passage) sits above a `<!-- FULL ARTICLE TEXT BELOW — PRIVATE VAULT ONLY, NEVER EXPORTED -->` marker; the complete verbatim text stays below it, unchanged from v0.5.4's behavior.
+- **`scripts/snapshot-wiki.mjs`**: new `publicBody()` splits the raw body on that marker and exports only what's above it. **Hardened to fail closed, not open**, per explicit follow-up request: a missing marker excludes the doc from export entirely (no raw-text fallback of any length, replacing the earlier 840-char `excerpt()` fallback); a summary over a 1,200-char `SUMMARY_MAX_LENGTH` ceiling throws and halts the whole snapshot run rather than silently writing a too-long summary (almost certainly an accidental raw-text paste) to the committed output. Both paths verified with real negative tests — a no-marker file (confirmed excluded, not in `data/wiki-index.js`) and an oversized-summary file (confirmed the script throws and the previously-written output file is left untouched/valid).
+- **No app rendering changes needed** — `renderMarkdown()`/`renderInline()` already handle `##` headers, `**bold**`, and lists, so the structured summary just renders correctly through existing infrastructure.
+- Retrofitted the existing test entry (`The Humanities Are the Moat`) to the new structure; verified the exported `data/wiki-index.js` body is the full ~1,190-character structured summary with zero raw-article-text leakage.
+- `.claude/skills/wiki-ingest/SKILL.md` updated with the template and the "short fragment or no quote, never a reproduced passage" constraint, since this is instructions a future ingest run follows literally.
+
+Files touched: `scripts/snapshot-wiki.mjs`, `.claude/skills/wiki-ingest/SKILL.md`.
 

@@ -30,16 +30,35 @@ const VAULT_WIKI_ROOT = path.join(loadVaultRoot(), 'wiki');
 const ZONES = ['concepts', 'entities', 'projects', 'articles'];
 const OUT_FILE = new URL('../data/wiki-index.js', import.meta.url);
 
-// wiki/articles/ (type: full-article) holds complete, verbatim article text —
-// private-vault-only by design (see .claude/skills/wiki-ingest/SKILL.md).
-// Never export the full body for this zone; only a short excerpt, so a full
-// reproduction of externally-sourced copyrighted text never reaches the
-// public repo via data/wiki-index.js.
-const EXCERPT_LENGTH = 840;
+// wiki/articles/ (type: full-article) holds a public-facing original summary
+// followed by the complete, verbatim article text behind a marker — the full
+// text is private-vault-only by design (see .claude/skills/wiki-ingest/SKILL.md).
+// This is the one safeguard standing between the public repo and reproducing
+// externally-sourced copyrighted text, so it fails CLOSED, not open:
+//   - No marker found         -> the doc is EXCLUDED from export entirely.
+//     (No raw-text fallback of any length. A missing marker means we don't
+//     know where the private text starts, so nothing from that file publishes.)
+//   - Marker found, but the summary above it exceeds SUMMARY_MAX_LENGTH
+//     -> the whole snapshot run THROWS and stops. A summary that long is
+//     almost certainly an accidental raw-text paste, not a real summary, and
+//     this must be loud, not silently written to the committed output.
+const FULL_TEXT_MARKER = /<!--\s*FULL ARTICLE TEXT BELOW[\s\S]*?-->/i;
+const SUMMARY_MAX_LENGTH = 1200;
 
-function excerpt(body, len) {
-  const plain = body.replace(/\s+/g, ' ').trim();
-  return plain.length > len ? plain.slice(0, len).replace(/\s+\S*$/, '') + '…' : plain;
+function publicBody(body, title) {
+  const parts = body.split(FULL_TEXT_MARKER);
+  if (parts.length < 2) {
+    console.warn(`  SKIPPED "${title}": full-article with no FULL ARTICLE TEXT marker — excluded from export rather than risk publishing raw text.`);
+    return null;
+  }
+  const summary = parts[0].trim();
+  if (summary.length > SUMMARY_MAX_LENGTH) {
+    throw new Error(
+      `"${title}" (full-article) summary is ${summary.length} chars, over the ${SUMMARY_MAX_LENGTH}-char safety ceiling. ` +
+      `This almost certainly means too much raw article text sits above the marker. Refusing to write data/wiki-index.js — shorten the summary and rerun.`
+    );
+  }
+  return summary;
 }
 
 function parseFrontmatter(raw) {
@@ -90,14 +109,22 @@ for (const zone of ZONES) {
     const raw = fs.readFileSync(path.join(dir, file), 'utf8');
     const { meta, body } = parseFrontmatter(raw);
     const isFullArticle = zone === 'articles' || meta.type === 'full-article';
+    const title = meta.title || file.replace(/\.md$/, '');
+
+    let exportBody = body;
+    if (isFullArticle) {
+      exportBody = publicBody(body, title);
+      if (exportBody === null) continue; // fail closed: exclude this doc entirely
+    }
+
     docs.push({
       id: slugify(zone, file),
-      title: meta.title || file.replace(/\.md$/, ''),
+      title,
       type: meta.type || zone.slice(0, -1),
       tags: Array.isArray(meta.tags) ? meta.tags : (meta.tags ? [meta.tags] : []),
       created: meta.created || '',
       updated: meta.updated || '',
-      body: isFullArticle ? excerpt(body, EXCERPT_LENGTH) : body,
+      body: exportBody,
       ...(meta.sourceUrl ? { sourceUrl: meta.sourceUrl } : {}),
       ...(meta.sourceAuthor ? { sourceAuthor: meta.sourceAuthor } : {}),
     });
