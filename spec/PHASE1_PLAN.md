@@ -1,6 +1,6 @@
 # Phase 1 Plan — Civic Tech Research Portal
 
-Status: **Phase 1 complete as of v0.5.6** (Related Articles tightened to real wikilink connections, on top of v0.5.5's structured original summaries, v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
+Status: **Phase 1 complete as of v0.5.7** (Search autocomplete type-ahead for the Ask bar, on top of v0.5.6's wikilink-tightened Related Articles, v0.5.5's structured original summaries, v0.4.0's Conversational answer preview/follow-up topics, v0.3.0's Related articles/Recent search history, and the v0.2.0 Conversational Ask flow) — in its own repo as of 2026-10-10. Phase 2 (Ingest/Analyze + Login/User Accounts) is in planning — see [`PHASE2_PLAN.md`](./PHASE2_PLAN.md).
 
 ## Source
 
@@ -247,4 +247,17 @@ First live use of the new `wiki-unpublish` skill, to keep the wiki's theme focus
 - **Verified**: `node --check research.js` passes; none of the 20 titles leaked into the regenerated `data/wiki-index.js` (101 → 81 docs); `Design Canvas` still exports; `Civic AI`'s unresolved link confirmed present as expected.
 
 Files touched: `data/wiki-index.js`.
+
+## v0.5.7 — Search Autocomplete for the Ask Bar (2026-10-11)
+
+Built the type-ahead idea logged in `spec/PHASE2_PLAN.md`, following its design reference (a Google-style "Ask anything" bar) with the two explicit deviations the user called out: only the clear ("×") icon, no mic or "+" icon.
+
+- **Matching reuses `search()`** (`research.js`) as-is — no second matcher. The dropdown takes the top 6 of whatever `search()` already returns, ranked by its existing title/tags/type/body scoring.
+- **New `#rw-autocomplete` dropdown** under the search pill (`index.html`, wrapped in a new `.rw-search-wrap` for positioning), one row per match with the same `.rw-type-dot` already used in the Sources chip — no new icon system.
+- **New `#rw-clear-input` button**, shown only once the field has text; clears the input, closes the dropdown, refocuses.
+- **Keyboard support**: ArrowUp/Down move a highlighted row (clamped at the ends), Enter selects the highlighted row if the dropdown is open (otherwise falls through to the existing submit-whatever-is-typed behavior), Escape closes the dropdown without clearing typed text. Outside-click closes it too, mirroring the existing hamburger-menu dropdown's own outside-click pattern.
+- **Bug found and fixed while testing this**: clicking "Back" from an Ask answer back to the home/search screen left the previous question sitting in the input instead of clearing it (pre-existing, unrelated to this feature — just surfaced by testing it). Fixed in `goBack()`'s empty-stack branch, alongside the two other "reset to home" spots (`New question`, the hamburger menu's Home action) that already did this correctly.
+- **Verified live in-browser** (not just `node --check`): typed a query, saw ranked matches with type-dots, arrow-key navigation + Enter selection worked, clear icon appeared/cleared correctly, outside-click closed the dropdown without submitting, and Back now returns to a genuinely empty input.
+
+Files touched: `index.html`, `research.css`, `research.js`.
 

@@ -8,7 +8,7 @@
 (function () {
   // Single source of truth for the footer's "Smol Wiki Chat vX.Y.Z" label.
   // Bump this when spec/PHASE1_PLAN.md records a new version — nothing else to touch.
-  var APP_VERSION = '0.5.6';
+  var APP_VERSION = '0.5.7';
 
   var DOCS = window.WIKI_INDEX || [];
   var titleIndex = {};
@@ -69,6 +69,63 @@
       .sort(function (a, b) { return b.score - a.score; })
       .slice(0, 25)
       .map(function (s) { return s.doc; });
+  }
+
+  /* ---------------- autocomplete ---------------- */
+
+  var autocompleteDocs = [];
+  var autocompleteActiveIndex = -1;
+
+  function renderAutocomplete(query) {
+    var dropdown = el('rw-autocomplete');
+    var q = query.trim();
+    autocompleteActiveIndex = -1;
+    if (!q) {
+      autocompleteDocs = [];
+      dropdown.style.display = 'none';
+      dropdown.innerHTML = '';
+      return;
+    }
+    autocompleteDocs = search(q).slice(0, 6);
+    if (!autocompleteDocs.length) {
+      dropdown.style.display = 'none';
+      dropdown.innerHTML = '';
+      return;
+    }
+    dropdown.innerHTML = autocompleteDocs.map(function (d, i) {
+      return '<button type="button" class="rw-autocomplete-item" data-index="' + i + '">' +
+        '<span class="rw-type-dot ' + d.type + '"></span>' +
+        '<span>' + escapeHtml(d.title) + '</span>' +
+        '</button>';
+    }).join('');
+    dropdown.style.display = 'block';
+    dropdown.querySelectorAll('.rw-autocomplete-item').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        selectAutocompleteDoc(autocompleteDocs[Number(btn.dataset.index)]);
+      });
+    });
+  }
+
+  function closeAutocomplete() {
+    autocompleteDocs = [];
+    autocompleteActiveIndex = -1;
+    el('rw-autocomplete').style.display = 'none';
+    el('rw-autocomplete').innerHTML = '';
+  }
+
+  function setAutocompleteActive(index) {
+    var items = el('rw-autocomplete').querySelectorAll('.rw-autocomplete-item');
+    if (!items.length) return;
+    autocompleteActiveIndex = Math.max(0, Math.min(index, items.length - 1));
+    items.forEach(function (item, i) {
+      item.classList.toggle('active', i === autocompleteActiveIndex);
+    });
+  }
+
+  function selectAutocompleteDoc(doc) {
+    closeAutocomplete();
+    el('rw-input').value = topicQuestion(doc);
+    askQuery(topicQuestion(doc), true, doc.id);
   }
 
   function previewParagraphs(body, count) {
@@ -576,7 +633,13 @@
   function goBack() {
     stack.pop();
     var prev = stack[stack.length - 1];
-    if (!prev) { showScreen('search'); return; }
+    if (!prev) {
+      el('rw-input').value = '';
+      el('rw-clear-input').style.display = 'none';
+      closeAutocomplete();
+      showScreen('search');
+      return;
+    }
     if (prev.screen === 'topics') {
       renderTopicPills();
       renderTopicGrid();
@@ -604,9 +667,35 @@
     renderTryChips();
     renderRecentChips();
 
-    el('rw-send').addEventListener('click', function () { askQuery(el('rw-input').value, true); });
+    el('rw-send').addEventListener('click', function () { closeAutocomplete(); askQuery(el('rw-input').value, true); });
+    el('rw-input').addEventListener('input', function (e) {
+      el('rw-clear-input').style.display = e.target.value ? 'flex' : 'none';
+      renderAutocomplete(e.target.value);
+    });
     el('rw-input').addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') askQuery(e.target.value, true);
+      var dropdownOpen = el('rw-autocomplete').style.display === 'block';
+      if (e.key === 'ArrowDown' && dropdownOpen) {
+        e.preventDefault();
+        setAutocompleteActive(autocompleteActiveIndex + 1);
+      } else if (e.key === 'ArrowUp' && dropdownOpen) {
+        e.preventDefault();
+        setAutocompleteActive(autocompleteActiveIndex - 1);
+      } else if (e.key === 'Escape' && dropdownOpen) {
+        closeAutocomplete();
+      } else if (e.key === 'Enter') {
+        if (dropdownOpen && autocompleteActiveIndex >= 0) {
+          selectAutocompleteDoc(autocompleteDocs[autocompleteActiveIndex]);
+        } else {
+          closeAutocomplete();
+          askQuery(e.target.value, true);
+        }
+      }
+    });
+    el('rw-clear-input').addEventListener('click', function () {
+      el('rw-input').value = '';
+      el('rw-clear-input').style.display = 'none';
+      closeAutocomplete();
+      el('rw-input').focus();
     });
     el('rw-menu-btn').addEventListener('click', function (e) {
       e.stopPropagation();
@@ -614,9 +703,15 @@
     });
     document.addEventListener('click', function (e) {
       var menu = el('rw-menu-dropdown');
-      if (!menu.classList.contains('open')) return;
-      if (menu.contains(e.target) || e.target === el('rw-menu-btn') || el('rw-menu-btn').contains(e.target)) return;
-      menu.classList.remove('open');
+      if (menu.classList.contains('open') &&
+        !menu.contains(e.target) && e.target !== el('rw-menu-btn') && !el('rw-menu-btn').contains(e.target)) {
+        menu.classList.remove('open');
+      }
+      var dropdown = el('rw-autocomplete');
+      if (dropdown.style.display === 'block' &&
+        !dropdown.contains(e.target) && e.target !== el('rw-input')) {
+        closeAutocomplete();
+      }
     });
     el('rw-menu-dropdown').querySelectorAll('[data-menu-action]').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -624,6 +719,8 @@
         var action = btn.dataset.menuAction;
         if (action === 'home') {
           el('rw-input').value = '';
+          el('rw-clear-input').style.display = 'none';
+          closeAutocomplete();
           stack = [];
           showScreen('search');
           el('rw-input').focus();
@@ -651,6 +748,8 @@
     el('rw-ask-back').addEventListener('click', goBack);
     el('rw-new-question').addEventListener('click', function () {
       el('rw-input').value = '';
+      el('rw-clear-input').style.display = 'none';
+      closeAutocomplete();
       stack = [];
       showScreen('search');
       el('rw-input').focus();

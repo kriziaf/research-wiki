@@ -90,11 +90,17 @@
                         <p>Ask about civic tech, AI ethics, or SLMs — every answer traces back to a source document from the ingested vault.</p>
                     </div>
 
-                    <div class="rw-search-pill">
-                        <input id="rw-input" type="text" placeholder="Ask about civic tech, AI ethics, or SLMs…" />
-                        <button class="rw-send" id="rw-send" aria-label="Ask" type="button">
-                            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3l12 7-12 7V3Z"/></svg>
-                        </button>
+                    <div class="rw-search-wrap">
+                        <div class="rw-search-pill">
+                            <input id="rw-input" type="text" placeholder="Ask about civic tech, AI ethics, or SLMs…" autocomplete="off" />
+                            <button class="rw-clear-input" id="rw-clear-input" aria-label="Clear" type="button" style="display:none">
+                                <svg width="14" height="14" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 5l10 10M15 5L5 15"/></svg>
+                            </button>
+                            <button class="rw-send" id="rw-send" aria-label="Ask" type="button">
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M5 3l12 7-12 7V3Z"/></svg>
+                            </button>
+                        </div>
+                        <div class="rw-autocomplete" id="rw-autocomplete" style="display:none"></div>
                     </div>
                     <p class="rw-hint" id="rw-hint"></p>
 

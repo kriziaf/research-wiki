@@ -58,7 +58,7 @@ Originally parked here as a generic "add citations to every doc" task. **Superse
 
 Recurring vault-maintenance ideas (not one-off features) now live in [`OPTIMIZATION_TASK_LOG.md`](./OPTIMIZATION_TASK_LOG.md) — see the Tag Category Review Skill entry there.
 
-## Search Autocomplete — type-ahead matching existing entries (idea, not yet built, 2026-10-11)
+## Search Autocomplete — type-ahead matching existing entries (built as v0.5.7, 2026-10-11)
 
 As the user types in the search/Ask bar (`#rw-input`), show a live dropdown of matching existing titles/tags from the corpus (`DOCS` in `research.js`) — not full search results, a lightweight type-ahead that narrows toward a real entry before they even submit.
 
@@ -68,4 +68,4 @@ As the user types in the search/Ask bar (`#rw-input`), show a live dropdown of m
 
 Today `#rw-input` (`index.html`) is a bare input with no icons at all, so this is additive: the clear icon plus the new dropdown, nothing removed from current behavior.
 
-**Open questions for when this gets built**: match against title substrings only, or tags too (reuse `search()`'s existing scoring in `research.js` rather than inventing a second matcher); how many suggestions to show; keyboard nav (arrow keys + enter) alongside mouse click.
+**Built in `spec/PHASE1_PLAN.md`'s v0.5.7 entry** — see that for the actual implementation. Open questions above were resolved there: reused `search()` directly, capped at 6 suggestions, and added full keyboard nav (arrows, enter, escape) alongside mouse click.
