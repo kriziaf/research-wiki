@@ -127,7 +127,8 @@ window.WIKI_INDEX = [
       "ai-literacy",
       "education",
       "automation",
-      "critical-thinking"
+      "critical-thinking",
+      "skills-erosion"
     ],
     "created": "2026-10-10",
     "updated": "2026-10-10",
@@ -629,7 +630,8 @@ window.WIKI_INDEX = [
       "humanities",
       "education",
       "ai-literacy",
-      "policy"
+      "policy",
+      "critical-thinking"
     ],
     "created": "2026-10-10",
     "updated": "2026-10-10",
@@ -725,7 +727,8 @@ window.WIKI_INDEX = [
     "tags": [
       "author",
       "sts",
-      "philosopher"
+      "philosopher",
+      "tech-neutrality"
     ],
     "created": "2026-10-10",
     "updated": "2026-10-10",
@@ -795,7 +798,8 @@ window.WIKI_INDEX = [
     "tags": [
       "author",
       "sts",
-      "historian"
+      "historian",
+      "tech-neutrality"
     ],
     "created": "2026-10-10",
     "updated": "2026-10-10",
@@ -1247,7 +1251,8 @@ window.WIKI_INDEX = [
       "sts",
       "ai-ethics",
       "accountability",
-      "design"
+      "design",
+      "tech-neutrality"
     ],
     "created": "2026-10-10",
     "updated": "2026-10-10",
@@ -1259,7 +1264,9 @@ window.WIKI_INDEX = [
     "type": "full-article",
     "tags": [
       "clippings",
-      "full-article"
+      "full-article",
+      "critical-thinking",
+      "skills-erosion"
     ],
     "created": "2026-10-10",
     "updated": "2026-10-10",

@@ -197,3 +197,12 @@ Follow-on to v0.5.4: the mechanical 840-char excerpt wasn't a good summary — "
 
 Files touched: `scripts/snapshot-wiki.mjs`, `.claude/skills/wiki-ingest/SKILL.md`.
 
+## Smart Tagging Guidance + Humanities Tag Fixes (content/skill-doc only, 2026-10-10)
+
+No app code changed — content/vault edits plus a `wiki-ingest` guidance addition, same pattern as the earlier concept restructuring (no `APP_VERSION` bump).
+
+- **Tags applied**: `skills-erosion` (new to the corpus) added to `Automation and the Erosion of Practiced Judgment` and the full-article page; `critical-thinking` added to `Humanities Defunding and the AI Skills Gap` and the full-article page (the other 4 Humanities-related concept pages already had it).
+- **`.claude/skills/wiki-ingest/SKILL.md`** gained a "Smart tagging" guideline in Step 4, prompted by the real problem found during the Topics page work (196 unique tags, 126 single-use): check the existing vocabulary before inventing a tag, reason from four loose categories (Domain / Skill-Capability / Mechanism-Phenomenon / Format) rather than free-associating, and cap at 3–5 tags per page.
+
+Files touched: `.claude/skills/wiki-ingest/SKILL.md`.
+

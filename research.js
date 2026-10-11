@@ -170,7 +170,7 @@
     { id: 'concepts/llm-wiki-pattern', question: 'RAG vs. the LLM wiki pattern' },
     { id: 'concepts/accountable-ai', question: 'What is Accountable AI?' },
     { id: 'entities/betanyc', question: 'Who is BetaNYC?' },
-    { id: 'concepts/vibecoding-risks-and-accountability', question: 'Risks of vibecoding in civic tech' }
+    { id: 'concepts/critical-ai-literacy', question: 'What is Critical AI Literacy?' }
   ];
 
   function renderTryChips() {
