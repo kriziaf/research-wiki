@@ -207,3 +207,12 @@ Mostly content/vault edits plus a `wiki-ingest` guidance addition (same pattern 
 
 Files touched: `.claude/skills/wiki-ingest/SKILL.md`, `research.js`.
 
+## Wikilink Alias Fix + Pre-Publish Verification Step (content/skill-doc only, 2026-10-10)
+
+Prompted by the user asking "are the 5 Humanities concepts wikilinked?" — they were, but inspection turned up a real bug: `Close Reading.md` had `[[Critical AI Literacy|The Humanities Are the Moat]]`, a link whose display text named the source article but whose actual target was a different concept page. No `APP_VERSION` bump — vault content + skill-doc guidance only.
+
+- **Fixed**: replaced the mismatched alias with plain italic `*The Humanities Are the Moat*` (no link) in the private vault file; re-ran the snapshot so `data/wiki-index.js` picks up the corrected body.
+- **`.claude/skills/wiki-ingest/SKILL.md`**: added a "Smart wikilinking" guideline to Step 4 (use `[[Title]]` for a plain link; only use `[[Title|display]]` when `display` is an accurate label for that target; prefer no link or italic prose over a wrong alias) and a new **Step 9 — Verify tags and wikilinks before publishing**, run before either snapshot script: re-check every touched page's tags against the Step 4 rule, and `grep -o "\[\[[^]]*\]\]"` every touched page to confirm each alias/target is accurate and resolves to a real page. The former Step 9 (offer to refresh the deployed app's corpus) is renumbered to Step 10; two stale "(Step 9)" cross-references inside Step 4's full-article section were corrected to "(Step 10)".
+
+Files touched: `.claude/skills/wiki-ingest/SKILL.md`, `data/wiki-index.js`.
+

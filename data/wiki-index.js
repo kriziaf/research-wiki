@@ -290,7 +290,7 @@ window.WIKI_INDEX = [
     ],
     "created": "2026-10-10",
     "updated": "2026-10-10",
-    "body": "# Close Reading\n\nOne of the oldest practices in the humanities: reading a text to notice what it does *not* say, rather than only what it states. [[Critical AI Literacy|The Humanities Are the Moat]] reframes it as the central diagnostic question for AI output — \"what is the AI not saying?\" — described as simple to ask and the hardest question in critical AI literacy, because AI output reads as fluent, structured, and confident, as if it had considered everything.\n\n## Related Concepts\n\n- [[Critical AI Literacy]] — the broader capability this practice feeds\n- [[Humanities Defunding and the AI Skills Gap]] — the disciplinary context close reading comes from\n- [[Evaluative Reading List for Critical AI Literacy]] — texts that train the same muscle"
+    "body": "# Close Reading\n\nOne of the oldest practices in the humanities: reading a text to notice what it does *not* say, rather than only what it states. *The Humanities Are the Moat* reframes it as the central diagnostic question for AI output — \"what is the AI not saying?\" — described as simple to ask and the hardest question in critical AI literacy, because AI output reads as fluent, structured, and confident, as if it had considered everything.\n\n## Related Concepts\n\n- [[Critical AI Literacy]] — the broader capability this practice feeds\n- [[Humanities Defunding and the AI Skills Gap]] — the disciplinary context close reading comes from\n- [[Evaluative Reading List for Critical AI Literacy]] — texts that train the same muscle"
   },
   {
     "id": "concepts/communication-performance",

@@ -49,11 +49,13 @@ Read the chosen file(s) — more than one at a time is fine (e.g. two linked art
 - **Categorize by type, not just topic.** Reason from four loose buckets, not a closed list: **Domain** (humanities, ai-ethics, sts, civic-tech, design...), **Skill/Capability** (critical-thinking, close-reading...), **Mechanism/Phenomenon** (automation, skills-erosion, policy...), **Format** (canon, case-study, framework...). A good tag set usually draws from more than one bucket — five domain tags and nothing else is a sign the page needs sharper tags, not more of them.
 - **Cap it** at a handful (3–5) per page, matching what's already typical in this corpus.
 
+**Smart wikilinking**: when related pages cross-link each other (a "Related Concepts" section, or an inline reference), use `[[Title]]` for a plain link and `[[Title|display text]]` only when the display text is itself an accurate label for *that* target — never alias a link to read like it points somewhere else (a real bug found and fixed in this corpus: a link read "The Humanities Are the Moat" but its target was a *different* concept page entirely). If in doubt, skip the alias and just write `[[Title]]`, or use plain italic prose (`*Title*`) when you're referencing something by name without linking at all — a wrong alias is worse than no link.
+
 **Sourceless files**: if a file has partial or no frontmatter — no `source:` URL, no `title:`, reads as an original note/reflection rather than an external clipping — don't fabricate a citation. Synthesize minimal frontmatter instead: `title` from the filename or an obvious first line, `created` as today, `type: note` (instead of the implicit clipping type), and simply omit `source:`/`author:` rather than inventing them. Say so explicitly in the Step 5 plan so the user can correct it if the file actually does have a source you missed.
 
 **Full-article option — articles only, never research papers**: in addition to the usual concept/entity extraction, offer (don't assume) creating a `wiki/articles/<Title>.md` page holding the complete text verbatim, tagged `type: full-article` plus `"full-article"` in `tags:`, with `sourceUrl:`/`sourceAuthor:` frontmatter pointing at the real source. **Only offer this for articles** (blog posts, newsletter pieces, essays, news — the kind of thing that lands in `raw/clippings/`), **never for research papers** (journal/conference papers, preprints, anything that belongs in `raw/papers/` instead). Classify using whatever signals are available — `source:` domain (`arxiv.org`, `doi.org`, journal/publisher domains, `.edu` paper/PDF pages), a DOI, a `published:` field citing a journal/conference, or the file simply being a PDF-derived academic paper. If genuinely ambiguous, ask rather than guess, per Step 7's governance rule. Research papers still get the normal concept/entity synthesis (Step 4 above) — they're just never candidates for a verbatim full-text copy, full stop, regardless of private-vault-only status.
 
-**This page is private-vault-only by design** — it must never be treated as something that flows into the public app at full length. `scripts/snapshot-wiki.mjs` enforces this on the export side (Step 9), but don't undermine that here either: never paste the full article text into your own chat response when proposing or confirming this plan — describe it by title/word-count, the way you would any other file write.
+**This page is private-vault-only by design** — it must never be treated as something that flows into the public app at full length. `scripts/snapshot-wiki.mjs` enforces this on the export side (Step 10), but don't undermine that here either: never paste the full article text into your own chat response when proposing or confirming this plan — describe it by title/word-count, the way you would any other file write.
 
 **Write a structured summary in the body — an original synthesis, not a truncated quote.** This is what the public app actually shows for a full-article entry, so it needs to earn its place. Structure it like a concept page's opening (Step 4's synthesis pattern), not a Reddit-Answers-style multi-source round-up:
 
@@ -69,7 +71,7 @@ Read the chosen file(s) — more than one at a time is fine (e.g. two linked art
 <complete article text, verbatim, as before>
 ```
 
-The marker line is load-bearing: `scripts/snapshot-wiki.mjs` splits on it and exports only what's above it (Step 9). Everything below stays private-vault-only. Explain *why the topic matters* — stakes, the argument's shape, who should care — in 2–4 bullet-style claims; never paraphrase-by-truncation. Include the summary text in the Step 5 plan like any other content, so the user can see and approve the actual wording before it's written.
+The marker line is load-bearing: `scripts/snapshot-wiki.mjs` splits on it and exports only what's above it (Step 10). Everything below stays private-vault-only. Explain *why the topic matters* — stakes, the argument's shape, who should care — in 2–4 bullet-style claims; never paraphrase-by-truncation. Include the summary text in the Step 5 plan like any other content, so the user can see and approve the actual wording before it's written.
 
 ## Step 5 — Present the plan, then stop
 
@@ -95,8 +97,15 @@ Execute exactly the plan as approved (or as revised in the follow-up). After wri
 
 URL ingestion (the spec's `defuddle` reference) isn't implemented here — this skill only handles files that already exist locally (whether found via `sourceFolders` search or given as explicit paths, per Step 2). Fetching and cleaning a live URL isn't built.
 
-## Step 9 — Offer to refresh the deployed app's corpus
+## Step 9 — Verify tags and wikilinks before publishing
 
-After a successful write, offer (don't auto-run) both snapshot scripts — they read `vaultRoot` from the same `.claude/wiki-ingest.local.json`, so no path duplication:
+Don't skip this even for a small ingest — it's exactly where the Close Reading alias bug slipped through. Before running either snapshot script:
+- **Tags**: re-check every new/modified page's `tags:` list against the Smart Tagging rule (Step 4) — each tag is either a reused existing one or a deliberately justified new one, and the page has 3–5 tags, not more.
+- **Wikilinks**: for every page touched this run, `grep -o "\[\[[^]]*\]\]" "<path>"` and check each match — for `[[Target|Display]]` pairs, confirm `Display` is actually an accurate label for `Target`; for plain `[[Target]]` links, confirm `Target` resolves to a real page (one that exists already, or one created in this same batch).
+- Fix anything wrong before moving on — this is still private-vault-only work at this point, so fixing it now is free; publishing it first and catching it later isn't.
+
+## Step 10 — Offer to refresh the deployed app's corpus
+
+After verification passes, offer (don't auto-run) both snapshot scripts — they read `vaultRoot` from the same `.claude/wiki-ingest.local.json`, so no path duplication:
 - `node scripts/snapshot-wiki.mjs` — so the newly ingested page becomes searchable in the deployed Smol Wiki app's `data/wiki-index.js`.
 - `node scripts/snapshot-ingest-log.mjs` — so the ingest shows up on the app's "Ingest Log" page (`data/ingest-log.js`), grouped by date.
