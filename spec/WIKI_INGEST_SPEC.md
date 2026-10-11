@@ -14,6 +14,7 @@ Source files:
 |---|---|---|
 | `raw/` | Read-only sources (clippings, papers). Never edited/renamed/moved. | Original uploaded/pasted documents, immutable once ingested. |
 | `wiki/` | LLM-owned. Synthesized concepts/entities/projects, frontmattered, cross-linked. | **This is the Document Store** the civic-tech portal already scans (`wiki/concepts`, `wiki/entities`, `wiki/projects`). |
+| `wiki/unpublish/` | Flat holding folder, sibling to `wiki/concepts`/`entities`/`projects`/`articles`. Pages removed from publication via `wiki-unpublish`, never deleted — stamped with `unpublishedFrom`/`unpublishedDate`/`unpublishedReason` for traceability and reversal. | Invisible to `scripts/snapshot-wiki.mjs` by construction — `unpublish` isn't one of the four zone names it scans, so a moved page simply stops appearing in the next export. Re-publish is moving the file back. |
 | `inbox/` | Staging drafts, requires explicit approval before promotion to `wiki/`. | Maps to "Ingest Documents" happening *before* "Save to Research Repository" in the flowchart — a built-in pending state. |
 | `dev/` | Collaborative technical notes (ADRs, debriefs). | Out of scope for the portal. |
 

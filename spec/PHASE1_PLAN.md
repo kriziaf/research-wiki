@@ -226,3 +226,14 @@ Files touched: `.claude/skills/wiki-ingest/SKILL.md`, `data/wiki-index.js`.
 
 Files touched: `research.js`.
 
+## Wiki-Unpublish Skill — tag-traced batch unpublishing (content/skill-doc only, 2026-10-10)
+
+Mirror image of `wiki-ingest`: that skill only adds/appends, this one only removes a page from publication — by moving it, never deleting it, consistent with the project's standing "never delete" rule. No `APP_VERSION` bump — new skill file + spec doc updates only, no `research.js` changes needed.
+
+- **New zone: `wiki/unpublish/`** — a flat folder, sibling to `wiki/concepts`/`entities`/`projects`/`articles`, holding pages removed from publication. Automatically invisible to `scripts/snapshot-wiki.mjs`'s export with zero script changes, since `unpublish` isn't one of the four zone names its `ZONES` constant scans — a moved page just stops appearing in the next `data/wiki-index.js` snapshot. The app's existing unresolved-wikilink rendering (`renderInline()` in `research.js`) already degrades gracefully for any page that still links to something now removed, so no app code needed there either.
+- **New skill `.claude/skills/wiki-unpublish/SKILL.md`** (separate file, `wiki-ingest/SKILL.md` untouched): select targets by tag (batch) or explicit title(s); always traces every other page still linking to a target before presenting a plan, so nothing breaks silently; stamps moved pages with `unpublishedFrom`/`unpublishedDate`/`unpublishedReason` for a correct, traceable re-publish later; same "present a plan, wait for approval" governance as `wiki-ingest`.
+- **`.gitignore`**: added `!.claude/skills/wiki-unpublish` alongside the existing `wiki-ingest` carve-out, so this skill commits to the public repo too.
+- **`spec/WIKI_INGEST_SPEC.md`**: added the `wiki/unpublish/` row to the zone table.
+
+Files touched: `.claude/skills/wiki-unpublish/SKILL.md` (new, committed), `.gitignore`, `spec/WIKI_INGEST_SPEC.md`.
+
