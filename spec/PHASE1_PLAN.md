@@ -237,3 +237,14 @@ Mirror image of `wiki-ingest`: that skill only adds/appends, this one only remov
 
 Files touched: `.claude/skills/wiki-unpublish/SKILL.md` (new, committed), `.gitignore`, `spec/WIKI_INGEST_SPEC.md`.
 
+## First Real Wiki-Unpublish Run — 20-Page Conversational-Design Cluster (content only, 2026-10-11)
+
+First live use of the new `wiki-unpublish` skill, to keep the wiki's theme focused on Accountable AI research rather than general chatbot/conversational-design UX. No `APP_VERSION` bump — vault content only, `data/wiki-index.js` regenerated from the smaller corpus.
+
+- **Selected by tag**: `design-canvas`, `voice-ui`, `vui` matched 20 concept pages — well over the `>5 docs` bulk-operation threshold, called out explicitly before moving anything.
+- **Traced the blast radius**: found 8 pages outside the candidate set with real `[[wikilink]]`s in, split into two groups by review — 6 same-theme hub pages (`Design Canvas`, `Scenario-Based Design`, the `Project Athena` project page, `Conversation Flow - Three Act Patterns`, `Bot Introduction Design`, `Civic Tech`) got their 57 now-dangling links stripped to plain italic (same "no link over a wrong one" pattern as the earlier Close Reading alias fix); `Civic AI` and `Krizia Fernando` were kept untouched per explicit instruction, so their `[[Conversational Design]]` links now render via the app's existing unresolved-wikilink style.
+- **Moved** all 20 pages from `wiki/concepts/` to `wiki/unpublish/`, each stamped `unpublishedFrom: concepts`, `unpublishedDate: 2026-10-11`, and a reason note.
+- **Verified**: `node --check research.js` passes; none of the 20 titles leaked into the regenerated `data/wiki-index.js` (101 → 81 docs); `Design Canvas` still exports; `Civic AI`'s unresolved link confirmed present as expected.
+
+Files touched: `data/wiki-index.js`.
+
