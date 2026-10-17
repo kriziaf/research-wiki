@@ -491,12 +491,23 @@
     }
     el('rw-hint').textContent = '';
     addRecent(query);
-    var results = buildAskResults(query, pinnedId);
     var entry = { screen: 'ask', query: query, pinnedId: pinnedId || null };
     if (fresh) stack = [entry]; else stack.push(entry);
-    renderAsk(query, results);
     showScreen('ask');
     setRoute(entry);
+
+    // Show loading state
+    el('rw-ask-question').textContent = query;
+    el('rw-ask-sources').style.display = 'none';
+    el('rw-ask-body').innerHTML = '<div class="rw-thinking"><span class="rw-dot"></span><span class="rw-dot"></span><span class="rw-dot"></span></div>';
+    el('rw-ask-continue').textContent = '';
+    el('rw-ask-followup-topics').innerHTML = '';
+
+    // Delay before showing actual results (minimum 2 seconds for UX)
+    setTimeout(function() {
+      var results = buildAskResults(query, pinnedId);
+      renderAsk(query, results);
+    }, 2000);
   }
 
   function topicQuestion(doc) {
