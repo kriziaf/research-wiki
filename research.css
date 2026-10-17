@@ -433,3 +433,22 @@ html, body{ margin:0; padding:0; }
   cursor:pointer; text-align:center;
 }
 .rw-preview-open:hover{ border-color:var(--rw-accent); color:var(--rw-accent-ink); }
+
+/* Thinking/Loading Animation */
+.rw-thinking{
+  display:flex; align-items:center; gap:4px; color:var(--rw-muted);
+  font-size:1rem; line-height:1.5;
+}
+
+.rw-dot{
+  display:inline-block; width:6px; height:6px; border-radius:50%;
+  background-color:var(--rw-muted);
+  animation:rw-dot-blink 1.4s infinite;
+}
+.rw-dot:nth-child(2){ animation-delay:0.2s; }
+.rw-dot:nth-child(3){ animation-delay:0.4s; }
+
+@keyframes rw-dot-blink{
+  0%, 60%, 100%{ opacity:0.4; }
+  30%{ opacity:1; }
+}
