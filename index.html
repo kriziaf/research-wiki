@@ -25,6 +25,7 @@
                     <div class="rw-menu-dropdown" id="rw-menu-dropdown">
                         <button type="button" class="rw-menu-item" data-menu-action="home">Ask Wiki</button>
                         <button type="button" class="rw-menu-item" data-menu-action="topics">Search Topics</button>
+                        <button type="button" class="rw-menu-item" data-menu-action="graph">Graph View</button>
                         <button type="button" class="rw-menu-item" data-menu-action="ingest-log">Ingest Log</button>
                         <div class="rw-menu-divider"></div>
                         <button type="button" class="rw-menu-item" data-menu-action="login" title="Sign in — coming soon">Log in</button>
@@ -192,6 +193,20 @@
                             <div class="rw-preview" id="rw-preview"></div>
                         </aside>
                     </div>
+                </section>
+
+                <!-- ===== graph view screen ===== -->
+                <section class="rw-screen rw-screen-graph">
+                    <div class="rw-article-subbar">
+                        <button class="rw-back" id="rw-graph-back" type="button">
+                            <svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12.5 4.5L6 10l6.5 5.5"/></svg>
+                            Back
+                        </button>
+                        <div class="rw-graph-legend" id="rw-graph-legend"></div>
+                    </div>
+                    <svg id="rw-graph-svg" preserveAspectRatio="xMidYMid meet">
+                        <g id="rw-graph-viewport"></g>
+                    </svg>
                 </section>
             </main>
 

@@ -122,6 +122,7 @@ html, body{ margin:0; padding:0; }
 #research-app[data-screen="ask"] .rw-screen-ask{ display:block; }
 #research-app[data-screen="related"] .rw-screen-results{ display:block; }
 #research-app[data-screen="article"] .rw-screen-article{ display:block; }
+#research-app[data-screen="graph"] .rw-screen-graph{ display:flex; }
 
 /* ---------- topics (browse by tag) screen ---------- */
 .rw-screen-topics{ padding:8px 20px 0; }
@@ -452,3 +453,61 @@ html, body{ margin:0; padding:0; }
   0%, 60%, 100%{ opacity:0.4; }
   30%{ opacity:1; }
 }
+
+/* ---------- graph view screen ---------- */
+.rw-screen-graph{
+  flex-direction:column; padding:0; height:100vh;
+}
+
+.rw-screen-graph .rw-article-subbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 20px; border-bottom:1px solid var(--rw-line);
+  flex:none;
+}
+
+#rw-graph-svg{
+  flex:1; width:100%; height:100%; background:var(--rw-ground);
+  cursor:grab;
+}
+
+#rw-graph-svg.panning{ cursor:grabbing; }
+
+#rw-graph-svg .rw-graph-edge{
+  stroke:var(--rw-line); stroke-width:1; fill:none; pointer-events:none;
+}
+
+#rw-graph-svg .rw-graph-node{
+  cursor:pointer; filter:drop-shadow(0 2px 4px var(--rw-shadow));
+  transition:filter 140ms ease;
+}
+
+#rw-graph-svg .rw-graph-node:hover{
+  filter:drop-shadow(0 4px 8px var(--rw-shadow));
+}
+
+#rw-graph-svg .rw-graph-node.concept{ fill:var(--rw-type-concept); }
+#rw-graph-svg .rw-graph-node.entity{ fill:var(--rw-type-entity); }
+#rw-graph-svg .rw-graph-node.project{ fill:var(--rw-type-project); }
+#rw-graph-svg .rw-graph-node.full-article{ fill:var(--rw-type-full-article); }
+
+#rw-graph-svg .rw-graph-label{
+  font-size:10px; text-anchor:middle; pointer-events:none; fill:var(--rw-muted);
+  user-select:none; font-family:var(--rw-font-body); font-weight:500;
+}
+
+.rw-graph-legend{
+  display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding:0;
+}
+
+.rw-graph-legend-item{
+  display:flex; gap:6px; align-items:center; font-size:0.85rem; color:var(--rw-muted);
+}
+
+.rw-graph-legend-dot{
+  width:8px; height:8px; border-radius:50%; flex:none;
+}
+
+.rw-graph-legend-dot.concept{ background:var(--rw-type-concept); }
+.rw-graph-legend-dot.entity{ background:var(--rw-type-entity); }
+.rw-graph-legend-dot.project{ background:var(--rw-type-project); }
+.rw-graph-legend-dot.full-article{ background:var(--rw-type-full-article); }

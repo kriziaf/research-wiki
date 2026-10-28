@@ -8,7 +8,7 @@
 (function () {
   // Single source of truth for the footer's "Smol Wiki Chat vX.Y.Z" label.
   // Bump this when spec/PHASE1_PLAN.md records a new version — nothing else to touch.
-  var APP_VERSION = '0.5.9';
+  var APP_VERSION = '0.6.0';
 
   var DOCS = window.WIKI_INDEX || [];
   var titleIndex = {};
@@ -400,6 +400,219 @@
     setRoute({ screen: 'ingest-log' });
   }
 
+  /* ---------- graph view ---------- */
+
+  var graphCache = { nodes: null, edges: null, positions: null };
+
+  function buildGraphData() {
+    if (graphCache.nodes) return;
+    var nodes = DOCS.map(function (d) { return { id: d.id, title: d.title, type: d.type }; });
+    var edgeSet = {};
+    Object.keys(wikilinkGraph).forEach(function (nodeId) {
+      var neighbors = wikilinkGraph[nodeId];
+      Object.keys(neighbors).forEach(function (neighborId) {
+        var pair = [nodeId, neighborId].sort().join('|');
+        edgeSet[pair] = true;
+      });
+    });
+    var edges = Object.keys(edgeSet).map(function (pair) {
+      var parts = pair.split('|');
+      return { source: parts[0], target: parts[1] };
+    });
+    graphCache.nodes = nodes;
+    graphCache.edges = edges;
+  }
+
+  function layoutGraphFR(nodes, edges) {
+    var width = window.innerWidth;
+    var height = window.innerHeight - 60;
+    var centerX = width / 2;
+    var centerY = height / 2;
+
+    nodes.forEach(function (n) {
+      n.x = centerX + (Math.random() - 0.5) * Math.min(width, height);
+      n.y = centerY + (Math.random() - 0.5) * Math.min(width, height);
+      n.vx = 0;
+      n.vy = 0;
+    });
+
+    var k = Math.sqrt(width * height / nodes.length);
+    var iterations = 300;
+    var temperature = Math.sqrt(width * width + height * height) / 10;
+
+    for (var iter = 0; iter < iterations; iter++) {
+      nodes.forEach(function (n) { n.fx = 0; n.fy = 0; });
+
+      for (var i = 0; i < nodes.length; i++) {
+        for (var j = i + 1; j < nodes.length; j++) {
+          var a = nodes[i];
+          var b = nodes[j];
+          var dx = a.x - b.x;
+          var dy = a.y - b.y;
+          var dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
+          var repel = (k * k) / (dist + 0.1);
+          a.fx += (dx / dist) * repel;
+          a.fy += (dy / dist) * repel;
+          b.fx -= (dx / dist) * repel;
+          b.fy -= (dy / dist) * repel;
+        }
+      }
+
+      edges.forEach(function (e) {
+        var a = nodes.find(function (n) { return n.id === e.source; });
+        var b = nodes.find(function (n) { return n.id === e.target; });
+        if (a && b) {
+          var dx = a.x - b.x;
+          var dy = a.y - b.y;
+          var dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
+          var attract = (dist * dist) / k;
+          a.fx -= (dx / dist) * attract;
+          a.fy -= (dy / dist) * attract;
+          b.fx += (dx / dist) * attract;
+          b.fy += (dy / dist) * attract;
+        }
+      });
+
+      var centerGrav = 0.01;
+      nodes.forEach(function (n) {
+        n.fx -= (n.x - centerX) * centerGrav;
+        n.fy -= (n.y - centerY) * centerGrav;
+      });
+
+      nodes.forEach(function (n) {
+        n.vx = (n.vx + n.fx) * 0.99;
+        n.vy = (n.vy + n.fy) * 0.99;
+        var speed = Math.sqrt(n.vx * n.vx + n.vy * n.vy);
+        if (speed > temperature) {
+          n.vx = (n.vx / speed) * temperature;
+          n.vy = (n.vy / speed) * temperature;
+        }
+        n.x += n.vx;
+        n.y += n.vy;
+      });
+
+      temperature *= 0.995;
+    }
+
+    graphCache.positions = nodes;
+  }
+
+  function renderGraph() {
+    buildGraphData();
+    if (!graphCache.positions) {
+      layoutGraphFR(graphCache.nodes, graphCache.edges);
+    }
+
+    var svg = el('rw-graph-svg');
+    var width = svg.clientWidth || window.innerWidth;
+    var height = svg.clientHeight || (window.innerHeight - 60);
+
+    svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+
+    var viewport = el('rw-graph-viewport');
+    viewport.innerHTML = '';
+
+    graphCache.edges.forEach(function (e) {
+      var source = graphCache.nodes.find(function (n) { return n.id === e.source; });
+      var target = graphCache.nodes.find(function (n) { return n.id === e.target; });
+      if (source && target) {
+        var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        line.setAttribute('x1', source.x);
+        line.setAttribute('y1', source.y);
+        line.setAttribute('x2', target.x);
+        line.setAttribute('y2', target.y);
+        line.setAttribute('class', 'rw-graph-edge');
+        viewport.appendChild(line);
+      }
+    });
+
+    graphCache.nodes.forEach(function (n) {
+      var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('data-id', n.id);
+
+      var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', n.x);
+      circle.setAttribute('cy', n.y);
+      circle.setAttribute('r', '5');
+      circle.setAttribute('class', 'rw-graph-node ' + n.type);
+      circle.addEventListener('click', function () { openArticle(n.id, true); });
+
+      var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', n.x);
+      text.setAttribute('y', n.y + 12);
+      text.setAttribute('class', 'rw-graph-label');
+      var truncated = n.title.length > 16 ? n.title.substring(0, 13) + '…' : n.title;
+      text.textContent = truncated;
+      text.addEventListener('click', function () { openArticle(n.id, true); });
+
+      g.appendChild(circle);
+      g.appendChild(text);
+      viewport.appendChild(g);
+    });
+
+    renderGraphLegend();
+    wireGraphInteractions(svg, viewport);
+  }
+
+  function renderGraphLegend() {
+    var legend = el('rw-graph-legend');
+    var types = ['concept', 'entity', 'project', 'full-article'];
+    var labels = { concept: 'Concept', entity: 'Entity', project: 'Project', 'full-article': 'Full Article' };
+    legend.innerHTML = types.map(function (t) {
+      return '<div class="rw-graph-legend-item">' +
+        '<div class="rw-graph-legend-dot ' + t + '"></div>' +
+        '<span>' + labels[t] + '</span>' +
+        '</div>';
+    }).join('');
+  }
+
+  var panStart = null;
+  var panOffset = { x: 0, y: 0 };
+  var zoomScale = 1;
+
+  function wireGraphInteractions(svg, viewport) {
+    svg.addEventListener('mousedown', function (e) {
+      if (e.button === 0 && !e.target.matches('.rw-graph-node, .rw-graph-label')) {
+        panStart = { x: e.clientX, y: e.clientY };
+        svg.classList.add('panning');
+      }
+    });
+
+    document.addEventListener('mousemove', function (e) {
+      if (panStart) {
+        var dx = e.clientX - panStart.x;
+        var dy = e.clientY - panStart.y;
+        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+          panOffset.x += dx;
+          panOffset.y += dy;
+          panStart = { x: e.clientX, y: e.clientY };
+          var transform = 'translate(' + panOffset.x + 'px, ' + panOffset.y + 'px) scale(' + zoomScale + ')';
+          viewport.style.transform = transform;
+        }
+      }
+    });
+
+    document.addEventListener('mouseup', function () {
+      panStart = null;
+      svg.classList.remove('panning');
+    });
+
+    svg.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      var delta = e.deltaY > 0 ? 0.9 : 1.1;
+      zoomScale = Math.max(0.3, Math.min(3, zoomScale * delta));
+      var transform = 'translate(' + panOffset.x + 'px, ' + panOffset.y + 'px) scale(' + zoomScale + ')';
+      viewport.style.transform = transform;
+    }, { passive: false });
+  }
+
+  function showGraph() {
+    stack = [{ screen: 'graph' }];
+    renderGraph();
+    showScreen('graph');
+    setRoute({ screen: 'graph' });
+  }
+
   function renderResultCard(d) {
     return '<button type="button" class="rw-result-card" data-open="' + d.id + '">' +
       '<div class="rw-result-top"><span class="rw-type-dot ' + d.type + '"></span><span class="rw-result-type">' + d.type + ' · ' + d.id + '.md</span></div>' +
@@ -659,6 +872,7 @@
     if (!entry || entry.screen === 'search') return '';
     if (entry.screen === 'topics') return '/topics';
     if (entry.screen === 'ingest-log') return '/ingest-log';
+    if (entry.screen === 'graph') return '/graph';
     if (entry.screen === 'article') return '/article/' + entry.id;
     if (entry.screen === 'related') return '/related/' + entry.id;
     if (entry.screen === 'ask') {
@@ -675,6 +889,7 @@
     if (!h || h === '/') return { screen: 'search' };
     if (h === '/topics') return { screen: 'topics' };
     if (h === '/ingest-log') return { screen: 'ingest-log' };
+    if (h === '/graph') return { screen: 'graph' };
     var articleMatch = h.match(/^\/article\/(.+)$/);
     if (articleMatch) return { screen: 'article', id: articleMatch[1] };
     var relatedMatch = h.match(/^\/related\/(.+)$/);
@@ -723,6 +938,9 @@
     } else if (entry.screen === 'ingest-log') {
       renderIngestLog();
       showScreen('ingest-log');
+    } else if (entry.screen === 'graph') {
+      renderGraph();
+      showScreen('graph');
     } else if (entry.screen === 'related') {
       var relatedDoc = docById[entry.id];
       if (!relatedDoc) { renderFromRouteEntry({ screen: 'search' }); return; }
@@ -816,6 +1034,8 @@
           el('rw-input').focus();
         } else if (action === 'topics') {
           showTopics();
+        } else if (action === 'graph') {
+          showGraph();
         } else if (action === 'ingest-log') {
           showIngestLog();
         }
@@ -824,6 +1044,7 @@
     });
     el('rw-topics-back').addEventListener('click', goBack);
     el('rw-ingest-log-back').addEventListener('click', goBack);
+    el('rw-graph-back').addEventListener('click', goBack);
     el('rw-topics-search-input').addEventListener('input', function (e) {
       topicSearchQuery = e.target.value;
       renderTopicGrid();
