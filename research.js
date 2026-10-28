@@ -419,6 +419,9 @@
       var parts = pair.split('|');
       return { source: parts[0], target: parts[1] };
     });
+    nodes.forEach(function (n) {
+      n.degree = Object.keys(wikilinkGraph[n.id] || {}).length;
+    });
     graphCache.nodes = nodes;
     graphCache.edges = edges;
   }
@@ -436,7 +439,7 @@
       n.vy = 0;
     });
 
-    var k = Math.sqrt(width * height / nodes.length);
+    var k = Math.sqrt(width * height / nodes.length) * 1.2;
     var iterations = 300;
     var temperature = Math.sqrt(width * width + height * height) / 10;
 
@@ -465,7 +468,7 @@
           var dx = a.x - b.x;
           var dy = a.y - b.y;
           var dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
-          var attract = (dist * dist) / k;
+          var attract = (dist * dist) / (k * 1.8);
           a.fx -= (dx / dist) * attract;
           a.fy -= (dy / dist) * attract;
           b.fx += (dx / dist) * attract;
@@ -473,7 +476,7 @@
         }
       });
 
-      var centerGrav = 0.01;
+      var centerGrav = 0.005;
       nodes.forEach(function (n) {
         n.fx -= (n.x - centerX) * centerGrav;
         n.fy -= (n.y - centerY) * centerGrav;
@@ -504,10 +507,11 @@
     }
 
     var svg = el('rw-graph-svg');
-    var width = svg.clientWidth || window.innerWidth;
-    var height = svg.clientHeight || (window.innerHeight - 60);
+    var width = window.innerWidth;
+    var height = window.innerHeight - 60;
 
-    svg.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
+    svg.setAttribute('width', width);
+    svg.setAttribute('height', height);
 
     var viewport = el('rw-graph-viewport');
     viewport.innerHTML = '';
@@ -522,6 +526,8 @@
         line.setAttribute('x2', target.x);
         line.setAttribute('y2', target.y);
         line.setAttribute('class', 'rw-graph-edge');
+        line.setAttribute('data-source', e.source);
+        line.setAttribute('data-target', e.target);
         viewport.appendChild(line);
       }
     });
@@ -533,8 +539,9 @@
       var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       circle.setAttribute('cx', n.x);
       circle.setAttribute('cy', n.y);
-      circle.setAttribute('r', '5');
-      circle.setAttribute('class', 'rw-graph-node ' + n.type);
+      var radius = 3 + (n.degree / 5);
+      circle.setAttribute('r', radius);
+      circle.setAttribute('class', 'rw-graph-node');
       circle.addEventListener('click', function () { openArticle(n.id, true); });
 
       var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
@@ -547,6 +554,46 @@
 
       g.appendChild(circle);
       g.appendChild(text);
+
+      // Add hover event listeners
+      g.addEventListener('mouseenter', function () {
+        var neighbors = wikilinkGraph[n.id] || {};
+        var allCircles = viewport.querySelectorAll('.rw-graph-node');
+        var allEdges = viewport.querySelectorAll('.rw-graph-edge');
+
+        allCircles.forEach(function (c) {
+          var nodeId = c.parentElement.getAttribute('data-id');
+          if (nodeId === n.id) {
+            c.classList.add('active');
+          } else if (!neighbors[nodeId]) {
+            c.classList.add('faded');
+          }
+        });
+
+        allEdges.forEach(function (e) {
+          var s = e.getAttribute('data-source');
+          var t = e.getAttribute('data-target');
+          if (s === n.id || t === n.id) {
+            e.classList.add('highlighted');
+          } else {
+            e.classList.add('faded');
+          }
+        });
+
+        text.classList.add('visible');
+      });
+
+      g.addEventListener('mouseleave', function () {
+        viewport.querySelectorAll('.rw-graph-node').forEach(function (c) {
+          c.classList.remove('active', 'faded');
+        });
+        viewport.querySelectorAll('.rw-graph-edge').forEach(function (e) {
+          e.classList.remove('highlighted', 'faded');
+        });
+        text.classList.remove('visible');
+      });
+
+      g.setAttribute('data-id', n.id);
       viewport.appendChild(g);
     });
 
@@ -556,14 +603,10 @@
 
   function renderGraphLegend() {
     var legend = el('rw-graph-legend');
-    var types = ['concept', 'entity', 'project', 'full-article'];
-    var labels = { concept: 'Concept', entity: 'Entity', project: 'Project', 'full-article': 'Full Article' };
-    legend.innerHTML = types.map(function (t) {
-      return '<div class="rw-graph-legend-item">' +
-        '<div class="rw-graph-legend-dot ' + t + '"></div>' +
-        '<span>' + labels[t] + '</span>' +
-        '</div>';
-    }).join('');
+    legend.innerHTML = '<div class="rw-graph-legend-item">' +
+      '<div class="rw-graph-legend-dot"></div>' +
+      '<span>' + DOCS.length + ' Wiki Documents</span>' +
+      '</div>';
   }
 
   var panStart = null;
@@ -603,6 +646,7 @@
       zoomScale = Math.max(0.3, Math.min(3, zoomScale * delta));
       var transform = 'translate(' + panOffset.x + 'px, ' + panOffset.y + 'px) scale(' + zoomScale + ')';
       viewport.style.transform = transform;
+      el('rw-graph-zoom-level').textContent = Math.round(zoomScale * 100) + '%';
     }, { passive: false });
   }
 
@@ -611,6 +655,14 @@
     renderGraph();
     showScreen('graph');
     setRoute({ screen: 'graph' });
+  }
+
+  function zoomGraph(delta) {
+    var viewport = el('rw-graph-viewport');
+    if (!viewport) return;
+    zoomScale = Math.max(0.3, Math.min(3, zoomScale + delta));
+    viewport.style.transform = 'translate(' + panOffset.x + 'px, ' + panOffset.y + 'px) scale(' + zoomScale + ')';
+    el('rw-graph-zoom-level').textContent = Math.round(zoomScale * 100) + '%';
   }
 
   function renderResultCard(d) {
@@ -1045,6 +1097,8 @@
     el('rw-topics-back').addEventListener('click', goBack);
     el('rw-ingest-log-back').addEventListener('click', goBack);
     el('rw-graph-back').addEventListener('click', goBack);
+    el('rw-graph-zoom-in').addEventListener('click', function () { zoomGraph(0.2); });
+    el('rw-graph-zoom-out').addEventListener('click', function () { zoomGraph(-0.2); });
     el('rw-topics-search-input').addEventListener('input', function (e) {
       topicSearchQuery = e.target.value;
       renderTopicGrid();

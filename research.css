@@ -477,22 +477,30 @@ html, body{ margin:0; padding:0; }
 }
 
 #rw-graph-svg .rw-graph-node{
-  cursor:pointer; filter:drop-shadow(0 2px 4px var(--rw-shadow));
-  transition:filter 140ms ease;
+  fill:#58544e; cursor:pointer;
+  transition:fill 140ms ease, opacity 140ms ease, r 140ms ease;
 }
 
 #rw-graph-svg .rw-graph-node:hover{
   filter:drop-shadow(0 4px 8px var(--rw-shadow));
 }
 
-#rw-graph-svg .rw-graph-node.concept{ fill:var(--rw-type-concept); }
-#rw-graph-svg .rw-graph-node.entity{ fill:var(--rw-type-entity); }
-#rw-graph-svg .rw-graph-node.project{ fill:var(--rw-type-project); }
-#rw-graph-svg .rw-graph-node.full-article{ fill:var(--rw-type-full-article); }
+#rw-graph-svg .rw-graph-node.faded{ fill:#e3e1dd; opacity:0.35; }
+#rw-graph-svg .rw-graph-node.active{
+  fill:#7b68ee; filter:drop-shadow(0 2px 6px rgba(123,104,238,0.5));
+}
+
+#rw-graph-svg .rw-graph-edge.faded{ stroke:#e8e8e8; opacity:0.15; }
+#rw-graph-svg .rw-graph-edge.highlighted{ stroke:#8b7cf0; opacity:0.9; stroke-width:1.4; }
 
 #rw-graph-svg .rw-graph-label{
   font-size:10px; text-anchor:middle; pointer-events:none; fill:var(--rw-muted);
-  user-select:none; font-family:var(--rw-font-body); font-weight:500;
+  user-select:none; font-family:var(--rw-font-body); font-weight:500; opacity:0;
+  transition:opacity 140ms ease;
+}
+
+#rw-graph-svg .rw-graph-label.visible{
+  opacity:1;
 }
 
 .rw-graph-legend{
@@ -504,10 +512,21 @@ html, body{ margin:0; padding:0; }
 }
 
 .rw-graph-legend-dot{
-  width:8px; height:8px; border-radius:50%; flex:none;
+  width:8px; height:8px; border-radius:50%; flex:none; background:#58544e;
 }
 
-.rw-graph-legend-dot.concept{ background:var(--rw-type-concept); }
-.rw-graph-legend-dot.entity{ background:var(--rw-type-entity); }
-.rw-graph-legend-dot.project{ background:var(--rw-type-project); }
-.rw-graph-legend-dot.full-article{ background:var(--rw-type-full-article); }
+.rw-graph-controls{
+  display:flex; gap:8px; align-items:center;
+}
+
+.rw-zoom-btn{
+  background:var(--rw-surface); border:1px solid var(--rw-line); color:var(--rw-muted);
+  cursor:pointer; padding:6px 12px; border-radius:4px; font-size:0.85rem;
+  transition:all 140ms ease;
+}
+
+.rw-zoom-btn:hover{ background:var(--rw-ground); color:var(--rw-ink); }
+
+.rw-zoom-level{
+  font-size:0.85rem; color:var(--rw-muted); min-width:50px; text-align:center;
+}

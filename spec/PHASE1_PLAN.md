@@ -284,3 +284,16 @@ User asked to plan page routing to track page views across nav item pages (Topic
 
 Files touched: `research.js`.
 
+## v0.6.0 — Graph View (Tier 1 static force-directed layout) (2026-10-28)
+
+Added a new "Graph View" screen (hamburger menu → Graph View) showing all ~108 corpus documents as nodes connected by their real `[[wikilink]]` adjacency (reusing the existing `wikilinkGraph`), laid out once via a hand-rolled Fruchterman-Reingold force simulation — no D3 dependency, confirmed with the user that at this node count a CDN library would add network weight with no runtime benefit.
+
+- **Single gray node color, degree-based sizing**: user explicitly rejected per-type (concept/entity/project/full-article) node coloring in favor of one flat gray (`#58544e`), with circle radius `3 + degree/5` so heavily-linked hub pages (e.g. the knowledge-hub synthesis docs) read as visually larger without needing a legend.
+- **Labels hidden until hover**: node titles render as `<text>` labels with `opacity:0` by default, toggled to a `.visible` class only on hover — keeps the layout legible at a glance instead of a label soup.
+- **Hover-to-highlight neighbors**: hovering a node adds `.active` (indigo `#7b68ee` fill) to that node, leaves direct neighbors visually unchanged, and fades (`.faded`) everything else; connected edges get `.highlighted` (indigo stroke) via `data-source`/`data-target` attributes set at edge-creation time — an earlier version inferred edge connectivity by comparing `x1`/`x2` coordinate strings against circle `cx` values, which was fragile and occasionally mismatched; switched to explicit id attributes instead.
+- **Pan + zoom**: drag-to-pan and scroll-to-zoom (clamped 0.3×–3×) via a CSS transform on a `#rw-graph-viewport` group, plus explicit +/− zoom buttons and a live percentage readout in the subbar so the view has a discoverable, default-100% zoom control rather than relying solely on the scroll wheel.
+- **No `viewBox`**: the SVG uses explicit `width`/`height` attributes rather than a `viewBox`, after `viewBox` was found to interact badly with the transform-based pan/zoom and freeze the simulated layout's apparent motion.
+- Iterated on the Fruchterman-Reingold parameters (`k *= 1.2`, attraction divisor `k*1.8`, center gravity `0.005`, 300 iterations) to fix initial node clustering that was too tight.
+
+Files touched: `index.html`, `research.css`, `research.js`.
+
