@@ -313,3 +313,13 @@ User said the flat 2D layout "feels scattered" and asked for a 3D-globe look lik
 
 Files touched: `index.html`, `research.css`, `research.js`.
 
+## v0.7.1 — Globe Tuning: Denser Clustering + Autorotation (2026-10-28)
+
+Iterated on the v0.7.0 3D globe against a standalone Claude-artifact prototype of the same renderer (kept in sync with `research.js` by hand, not a build artifact) before porting the winning changes back here. User feedback after using the prototype: the cluster still felt too sparse/scattered, and they wanted the globe to keep turning on its own rather than sit still until dragged — a deliberate reversal of the v0.7.0 plan's "static, drag-to-rotate only" decision, made after hands-on use rather than up front.
+
+- **Tighter Fruchterman-Reingold layout**: reduced the repulsion constant `k` (`*1.2` → `*0.65`), increased center gravity 6x (`0.005` → `0.03`), and tightened the defensive radial clamp (`spread*1.3` → `spread*0.75`). Together these pull the whole simulation into a visibly denser core instead of the sparser, more sprawling v0.7.0 result — same `3 + degree/5` node-sizing formula and `0.9` velocity damping untouched.
+- **Gentle autorotation**: `autoRotateGraph()` runs on its own `requestAnimationFrame` loop, incrementing `rotationY` by `0.0018` rad/frame whenever the graph screen is active (`app.dataset.screen === 'graph'`), nothing is being dragged, and at least `700ms` has passed since the last drag/wheel interaction (tracked via `lastGraphInteraction = performance.now()`, set on `mousedown`, in-drag `mousemove`, `mouseup`, and `wheel`). Checking `app.dataset.screen` means the loop stops doing any work (beyond the next `requestAnimationFrame` call itself) the moment the user navigates away from the graph screen, so it doesn't drive CPU in the background on other screens.
+- Verified live in a browser: confirmed the denser silhouette, confirmed rotation advances on its own when idle, confirmed it pauses the instant a drag starts and resumes about 700ms after release, and confirmed it stops contributing draws once navigated away from the graph screen.
+
+Files touched: `research.js`.
+

@@ -8,7 +8,7 @@
 (function () {
   // Single source of truth for the footer's "Smol Wiki Chat vX.Y.Z" label.
   // Bump this when spec/PHASE1_PLAN.md records a new version — nothing else to touch.
-  var APP_VERSION = '0.7.0';
+  var APP_VERSION = '0.7.1';
 
   var DOCS = window.WIKI_INDEX || [];
   var titleIndex = {};
@@ -448,7 +448,7 @@
       n.vz = 0;
     });
 
-    var k = Math.sqrt(width * height / nodes.length) * 1.2;
+    var k = Math.sqrt(width * height / nodes.length) * 0.65;
     var iterations = 300;
     var temperature = Math.sqrt(width * width + height * height) / 10;
 
@@ -491,7 +491,7 @@
         }
       });
 
-      var centerGrav = 0.005;
+      var centerGrav = 0.03;
       nodes.forEach(function (n) {
         n.fx -= n.x * centerGrav;
         n.fy -= n.y * centerGrav;
@@ -522,7 +522,7 @@
     // needed this since an off-chart node simply drew off-screen; the
     // 3D camera derives its framing from the overall bounding radius,
     // so one runaway point would otherwise skew the whole projection).
-    var clampRadius = spread * 1.3;
+    var clampRadius = spread * 0.75;
     nodes.forEach(function (n) {
       var r = Math.sqrt(n.x * n.x + n.y * n.y + n.z * n.z);
       if (r > clampRadius) {
@@ -757,6 +757,9 @@
   var graphDrag = null;
   var zoomScale = 1;
   var graphInteractionsWired = false;
+  var GRAPH_AUTO_ROTATE_SPEED = 0.0018;
+  var GRAPH_AUTO_ROTATE_IDLE_MS = 700;
+  var lastGraphInteraction = 0;
 
   function wireGraphInteractions(canvas) {
     if (graphInteractionsWired) return;
@@ -773,6 +776,7 @@
 
     canvas.addEventListener('mousedown', function (e) {
       if (e.button !== 0) return;
+      lastGraphInteraction = performance.now();
       graphDrag = {
         startX: e.clientX,
         startY: e.clientY,
@@ -789,6 +793,7 @@
       var dy = e.clientY - graphDrag.startY;
       if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
         graphDrag.moved = true;
+        lastGraphInteraction = performance.now();
         graphView.rotationY = graphDrag.startRotationY + dx * GRAPH_ROTATE_SENSITIVITY;
         graphView.rotationX = Math.max(-GRAPH_PITCH_LIMIT, Math.min(GRAPH_PITCH_LIMIT,
           graphDrag.startRotationX + dy * GRAPH_ROTATE_SENSITIVITY));
@@ -798,6 +803,7 @@
 
     document.addEventListener('mouseup', function () {
       if (!graphDrag) return;
+      lastGraphInteraction = performance.now();
       if (!graphDrag.moved && graphView.hoveredId) {
         openArticle(graphView.hoveredId, true);
       }
@@ -807,11 +813,23 @@
 
     canvas.addEventListener('wheel', function (e) {
       e.preventDefault();
+      lastGraphInteraction = performance.now();
       var delta = e.deltaY > 0 ? 0.9 : 1.1;
       zoomScale = Math.max(0.3, Math.min(3, zoomScale * delta));
       drawGraph();
       el('rw-graph-zoom-level').textContent = Math.round(zoomScale * 100) + '%';
     }, { passive: false });
+
+    requestAnimationFrame(autoRotateGraph);
+  }
+
+  function autoRotateGraph(now) {
+    if (app.dataset.screen === 'graph' && !graphDrag &&
+      (now - lastGraphInteraction) > GRAPH_AUTO_ROTATE_IDLE_MS) {
+      graphView.rotationY += GRAPH_AUTO_ROTATE_SPEED;
+      drawGraph();
+    }
+    requestAnimationFrame(autoRotateGraph);
   }
 
   function showGraph() {
