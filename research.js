@@ -8,7 +8,7 @@
 (function () {
   // Single source of truth for the footer's "Smol Wiki Chat vX.Y.Z" label.
   // Bump this when spec/PHASE1_PLAN.md records a new version — nothing else to touch.
-  var APP_VERSION = '0.6.0';
+  var APP_VERSION = '0.7.0';
 
   var DOCS = window.WIKI_INDEX || [];
   var titleIndex = {};
@@ -400,9 +400,17 @@
     setRoute({ screen: 'ingest-log' });
   }
 
-  /* ---------- graph view ---------- */
+  /* ---------- graph view (3D globe, Canvas2D) ---------- */
 
   var graphCache = { nodes: null, edges: null, positions: null };
+
+  var GRAPH_COLOR_BASE = '#58544e';
+  var GRAPH_COLOR_ACTIVE = '#7b68ee';
+  var GRAPH_COLOR_FADED = '#e3e1dd';
+  var GRAPH_COLOR_EDGE_HIGHLIGHT = '#8b7cf0';
+  var GRAPH_MIN_HIT_RADIUS = 7;
+  var GRAPH_ROTATE_SENSITIVITY = 0.006;
+  var GRAPH_PITCH_LIMIT = 1.45;
 
   function buildGraphData() {
     if (graphCache.nodes) return;
@@ -429,14 +437,15 @@
   function layoutGraphFR(nodes, edges) {
     var width = window.innerWidth;
     var height = window.innerHeight - 60;
-    var centerX = width / 2;
-    var centerY = height / 2;
+    var spread = Math.min(width, height);
 
     nodes.forEach(function (n) {
-      n.x = centerX + (Math.random() - 0.5) * Math.min(width, height);
-      n.y = centerY + (Math.random() - 0.5) * Math.min(width, height);
+      n.x = (Math.random() - 0.5) * spread;
+      n.y = (Math.random() - 0.5) * spread;
+      n.z = (Math.random() - 0.5) * spread;
       n.vx = 0;
       n.vy = 0;
+      n.vz = 0;
     });
 
     var k = Math.sqrt(width * height / nodes.length) * 1.2;
@@ -444,7 +453,7 @@
     var temperature = Math.sqrt(width * width + height * height) / 10;
 
     for (var iter = 0; iter < iterations; iter++) {
-      nodes.forEach(function (n) { n.fx = 0; n.fy = 0; });
+      nodes.forEach(function (n) { n.fx = 0; n.fy = 0; n.fz = 0; });
 
       for (var i = 0; i < nodes.length; i++) {
         for (var j = i + 1; j < nodes.length; j++) {
@@ -452,12 +461,15 @@
           var b = nodes[j];
           var dx = a.x - b.x;
           var dy = a.y - b.y;
-          var dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
+          var dz = a.z - b.z;
+          var dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0.1;
           var repel = (k * k) / (dist + 0.1);
           a.fx += (dx / dist) * repel;
           a.fy += (dy / dist) * repel;
+          a.fz += (dz / dist) * repel;
           b.fx -= (dx / dist) * repel;
           b.fy -= (dy / dist) * repel;
+          b.fz -= (dz / dist) * repel;
         }
       }
 
@@ -467,37 +479,240 @@
         if (a && b) {
           var dx = a.x - b.x;
           var dy = a.y - b.y;
-          var dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
+          var dz = a.z - b.z;
+          var dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0.1;
           var attract = (dist * dist) / (k * 1.8);
           a.fx -= (dx / dist) * attract;
           a.fy -= (dy / dist) * attract;
+          a.fz -= (dz / dist) * attract;
           b.fx += (dx / dist) * attract;
           b.fy += (dy / dist) * attract;
+          b.fz += (dz / dist) * attract;
         }
       });
 
       var centerGrav = 0.005;
       nodes.forEach(function (n) {
-        n.fx -= (n.x - centerX) * centerGrav;
-        n.fy -= (n.y - centerY) * centerGrav;
+        n.fx -= n.x * centerGrav;
+        n.fy -= n.y * centerGrav;
+        n.fz -= n.z * centerGrav;
       });
 
       nodes.forEach(function (n) {
-        n.vx = (n.vx + n.fx) * 0.99;
-        n.vy = (n.vy + n.fy) * 0.99;
-        var speed = Math.sqrt(n.vx * n.vx + n.vy * n.vy);
+        n.vx = (n.vx + n.fx) * 0.9;
+        n.vy = (n.vy + n.fy) * 0.9;
+        n.vz = (n.vz + n.fz) * 0.9;
+        var speed = Math.sqrt(n.vx * n.vx + n.vy * n.vy + n.vz * n.vz);
         if (speed > temperature) {
           n.vx = (n.vx / speed) * temperature;
           n.vy = (n.vy / speed) * temperature;
+          n.vz = (n.vz / speed) * temperature;
         }
         n.x += n.vx;
         n.y += n.vy;
+        n.z += n.vz;
       });
 
       temperature *= 0.995;
     }
 
+    // Defensive radial clamp: guarantees a bounded, roughly spherical
+    // silhouette for the camera framing even if a node's simulated
+    // trajectory escapes the main cluster (the old SVG renderer never
+    // needed this since an off-chart node simply drew off-screen; the
+    // 3D camera derives its framing from the overall bounding radius,
+    // so one runaway point would otherwise skew the whole projection).
+    var clampRadius = spread * 1.3;
+    nodes.forEach(function (n) {
+      var r = Math.sqrt(n.x * n.x + n.y * n.y + n.z * n.z);
+      if (r > clampRadius) {
+        var f = clampRadius / r;
+        n.x *= f;
+        n.y *= f;
+        n.z *= f;
+      }
+    });
+
+    var boundingRadius = 0;
+    nodes.forEach(function (n) {
+      var r = Math.sqrt(n.x * n.x + n.y * n.y + n.z * n.z);
+      if (r > boundingRadius) boundingRadius = r;
+    });
+
     graphCache.positions = nodes;
+    graphCache.boundingRadius = boundingRadius || spread / 2;
+  }
+
+  var graphView = {
+    canvas: null,
+    ctx: null,
+    width: 0,
+    height: 0,
+    rotationX: -0.25,
+    rotationY: 0,
+    hoveredId: null,
+    lastProjected: [],
+    colors: { ground: '#fafaf8', line: '#e2ddd6', muted: '#726b64' }
+  };
+
+  function resolveGraphColors() {
+    var cs = getComputedStyle(document.documentElement);
+    graphView.colors.ground = (cs.getPropertyValue('--rw-ground') || '#fafaf8').trim();
+    graphView.colors.line = (cs.getPropertyValue('--rw-line') || '#e2ddd6').trim();
+    graphView.colors.muted = (cs.getPropertyValue('--rw-muted') || '#726b64').trim();
+  }
+
+  if (window.matchMedia) {
+    var graphThemeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    var graphThemeListener = function () {
+      if (!graphView.ctx) return;
+      resolveGraphColors();
+      drawGraph();
+    };
+    if (graphThemeQuery.addEventListener) {
+      graphThemeQuery.addEventListener('change', graphThemeListener);
+    } else if (graphThemeQuery.addListener) {
+      graphThemeQuery.addListener(graphThemeListener);
+    }
+  }
+
+  function projectGraphNodes() {
+    var cameraDistance = graphCache.boundingRadius * 2.2;
+    var focalLength = cameraDistance;
+    var cosY = Math.cos(graphView.rotationY);
+    var sinY = Math.sin(graphView.rotationY);
+    var cosX = Math.cos(graphView.rotationX);
+    var sinX = Math.sin(graphView.rotationX);
+    var centerX = graphView.width / 2;
+    var centerY = graphView.height / 2;
+    var R = graphCache.boundingRadius || 1;
+
+    return graphCache.nodes.map(function (n) {
+      var x1 = n.x * cosY + n.z * sinY;
+      var z1 = -n.x * sinY + n.z * cosY;
+      var y2 = n.y * cosX - z1 * sinX;
+      var z2 = n.y * sinX + z1 * cosX;
+      var x2 = x1;
+
+      var scale = focalLength / (cameraDistance - z2);
+      var depthT = Math.max(0, Math.min(1, (z2 + R) / (2 * R)));
+      var baseRadius = 3 + (n.degree / 5);
+
+      return {
+        node: n,
+        sx: centerX + x2 * scale * zoomScale,
+        sy: centerY + y2 * scale * zoomScale,
+        z: z2,
+        depthT: depthT,
+        radius: baseRadius * scale * zoomScale
+      };
+    });
+  }
+
+  function drawGraph() {
+    var ctx = graphView.ctx;
+    if (!ctx) return;
+    var w = graphView.width;
+    var h = graphView.height;
+
+    ctx.clearRect(0, 0, w, h);
+
+    var projected = projectGraphNodes();
+    graphView.lastProjected = projected;
+
+    var byId = {};
+    projected.forEach(function (p) { byId[p.node.id] = p; });
+
+    var hoveredId = graphView.hoveredId;
+    var neighbors = hoveredId ? (wikilinkGraph[hoveredId] || {}) : null;
+
+    // edges first, behind nodes
+    graphCache.edges.forEach(function (e) {
+      var a = byId[e.source];
+      var b = byId[e.target];
+      if (!a || !b) return;
+
+      var isConnected = hoveredId && (e.source === hoveredId || e.target === hoveredId);
+      var depthAlpha = 0.15 + 0.55 * ((a.depthT + b.depthT) / 2);
+
+      ctx.beginPath();
+      ctx.moveTo(a.sx, a.sy);
+      ctx.lineTo(b.sx, b.sy);
+      if (hoveredId) {
+        if (isConnected) {
+          ctx.strokeStyle = GRAPH_COLOR_EDGE_HIGHLIGHT;
+          ctx.globalAlpha = 0.9;
+          ctx.lineWidth = 1.4;
+        } else {
+          ctx.strokeStyle = graphView.colors.line;
+          ctx.globalAlpha = 0.08;
+          ctx.lineWidth = 0.8;
+        }
+      } else {
+        ctx.strokeStyle = graphView.colors.line;
+        ctx.globalAlpha = depthAlpha;
+        ctx.lineWidth = 0.8;
+      }
+      ctx.stroke();
+    });
+
+    // nodes, back-to-front for correct occlusion
+    var sorted = projected.slice().sort(function (a, b) { return a.z - b.z; });
+    var hoveredP = null;
+
+    sorted.forEach(function (p) {
+      var isHovered = hoveredId === p.node.id;
+      var isNeighbor = neighbors && neighbors[p.node.id];
+
+      ctx.beginPath();
+      ctx.arc(p.sx, p.sy, Math.max(p.radius, 1.5), 0, Math.PI * 2);
+
+      if (isHovered) {
+        ctx.fillStyle = GRAPH_COLOR_ACTIVE;
+        ctx.globalAlpha = 1;
+        hoveredP = p;
+      } else if (hoveredId && !isNeighbor) {
+        ctx.fillStyle = GRAPH_COLOR_FADED;
+        ctx.globalAlpha = 0.35;
+      } else {
+        ctx.fillStyle = GRAPH_COLOR_BASE;
+        ctx.globalAlpha = 0.35 + 0.65 * p.depthT;
+      }
+      ctx.fill();
+    });
+
+    if (hoveredP) {
+      var truncated = hoveredP.node.title.length > 20
+        ? hoveredP.node.title.substring(0, 17) + '…'
+        : hoveredP.node.title;
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = graphView.colors.muted;
+      ctx.font = '500 11px ' + (getComputedStyle(document.body).fontFamily || 'sans-serif');
+      ctx.textAlign = 'center';
+      ctx.fillText(truncated, hoveredP.sx, hoveredP.sy + hoveredP.radius + 14);
+    }
+
+    ctx.globalAlpha = 1;
+  }
+
+  function hitTestGraph(clientX, clientY) {
+    var rect = graphView.canvas.getBoundingClientRect();
+    var mx = clientX - rect.left;
+    var my = clientY - rect.top;
+
+    var best = null;
+    var bestDist = Infinity;
+    graphView.lastProjected.forEach(function (p) {
+      var dx = p.sx - mx;
+      var dy = p.sy - my;
+      var dist = Math.sqrt(dx * dx + dy * dy);
+      var hitRadius = Math.max(p.radius, GRAPH_MIN_HIT_RADIUS);
+      if (dist <= hitRadius && dist < bestDist) {
+        bestDist = dist;
+        best = p.node.id;
+      }
+    });
+    return best;
   }
 
   function renderGraph() {
@@ -506,99 +721,29 @@
       layoutGraphFR(graphCache.nodes, graphCache.edges);
     }
 
-    var svg = el('rw-graph-svg');
+    var canvas = el('rw-graph-canvas');
     var width = window.innerWidth;
     var height = window.innerHeight - 60;
+    var dpr = window.devicePixelRatio || 1;
 
-    svg.setAttribute('width', width);
-    svg.setAttribute('height', height);
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
 
-    var viewport = el('rw-graph-viewport');
-    viewport.innerHTML = '';
+    var ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    graphCache.edges.forEach(function (e) {
-      var source = graphCache.nodes.find(function (n) { return n.id === e.source; });
-      var target = graphCache.nodes.find(function (n) { return n.id === e.target; });
-      if (source && target) {
-        var line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-        line.setAttribute('x1', source.x);
-        line.setAttribute('y1', source.y);
-        line.setAttribute('x2', target.x);
-        line.setAttribute('y2', target.y);
-        line.setAttribute('class', 'rw-graph-edge');
-        line.setAttribute('data-source', e.source);
-        line.setAttribute('data-target', e.target);
-        viewport.appendChild(line);
-      }
-    });
+    graphView.canvas = canvas;
+    graphView.ctx = ctx;
+    graphView.width = width;
+    graphView.height = height;
 
-    graphCache.nodes.forEach(function (n) {
-      var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-      g.setAttribute('data-id', n.id);
-
-      var circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      circle.setAttribute('cx', n.x);
-      circle.setAttribute('cy', n.y);
-      var radius = 3 + (n.degree / 5);
-      circle.setAttribute('r', radius);
-      circle.setAttribute('class', 'rw-graph-node');
-      circle.addEventListener('click', function () { openArticle(n.id, true); });
-
-      var text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('x', n.x);
-      text.setAttribute('y', n.y + 12);
-      text.setAttribute('class', 'rw-graph-label');
-      var truncated = n.title.length > 16 ? n.title.substring(0, 13) + '…' : n.title;
-      text.textContent = truncated;
-      text.addEventListener('click', function () { openArticle(n.id, true); });
-
-      g.appendChild(circle);
-      g.appendChild(text);
-
-      // Add hover event listeners
-      g.addEventListener('mouseenter', function () {
-        var neighbors = wikilinkGraph[n.id] || {};
-        var allCircles = viewport.querySelectorAll('.rw-graph-node');
-        var allEdges = viewport.querySelectorAll('.rw-graph-edge');
-
-        allCircles.forEach(function (c) {
-          var nodeId = c.parentElement.getAttribute('data-id');
-          if (nodeId === n.id) {
-            c.classList.add('active');
-          } else if (!neighbors[nodeId]) {
-            c.classList.add('faded');
-          }
-        });
-
-        allEdges.forEach(function (e) {
-          var s = e.getAttribute('data-source');
-          var t = e.getAttribute('data-target');
-          if (s === n.id || t === n.id) {
-            e.classList.add('highlighted');
-          } else {
-            e.classList.add('faded');
-          }
-        });
-
-        text.classList.add('visible');
-      });
-
-      g.addEventListener('mouseleave', function () {
-        viewport.querySelectorAll('.rw-graph-node').forEach(function (c) {
-          c.classList.remove('active', 'faded');
-        });
-        viewport.querySelectorAll('.rw-graph-edge').forEach(function (e) {
-          e.classList.remove('highlighted', 'faded');
-        });
-        text.classList.remove('visible');
-      });
-
-      g.setAttribute('data-id', n.id);
-      viewport.appendChild(g);
-    });
+    resolveGraphColors();
+    drawGraph();
 
     renderGraphLegend();
-    wireGraphInteractions(svg, viewport);
+    wireGraphInteractions(canvas);
   }
 
   function renderGraphLegend() {
@@ -609,43 +754,62 @@
       '</div>';
   }
 
-  var panStart = null;
-  var panOffset = { x: 0, y: 0 };
+  var graphDrag = null;
   var zoomScale = 1;
+  var graphInteractionsWired = false;
 
-  function wireGraphInteractions(svg, viewport) {
-    svg.addEventListener('mousedown', function (e) {
-      if (e.button === 0 && !e.target.matches('.rw-graph-node, .rw-graph-label')) {
-        panStart = { x: e.clientX, y: e.clientY };
-        svg.classList.add('panning');
+  function wireGraphInteractions(canvas) {
+    if (graphInteractionsWired) return;
+    graphInteractionsWired = true;
+
+    canvas.addEventListener('mousemove', function (e) {
+      if (graphDrag) return;
+      var hit = hitTestGraph(e.clientX, e.clientY);
+      if (hit !== graphView.hoveredId) {
+        graphView.hoveredId = hit;
+        drawGraph();
       }
     });
 
+    canvas.addEventListener('mousedown', function (e) {
+      if (e.button !== 0) return;
+      graphDrag = {
+        startX: e.clientX,
+        startY: e.clientY,
+        startRotationX: graphView.rotationX,
+        startRotationY: graphView.rotationY,
+        moved: false
+      };
+      graphView.canvas.classList.add('panning');
+    });
+
     document.addEventListener('mousemove', function (e) {
-      if (panStart) {
-        var dx = e.clientX - panStart.x;
-        var dy = e.clientY - panStart.y;
-        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
-          panOffset.x += dx;
-          panOffset.y += dy;
-          panStart = { x: e.clientX, y: e.clientY };
-          var transform = 'translate(' + panOffset.x + 'px, ' + panOffset.y + 'px) scale(' + zoomScale + ')';
-          viewport.style.transform = transform;
-        }
+      if (!graphDrag) return;
+      var dx = e.clientX - graphDrag.startX;
+      var dy = e.clientY - graphDrag.startY;
+      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+        graphDrag.moved = true;
+        graphView.rotationY = graphDrag.startRotationY + dx * GRAPH_ROTATE_SENSITIVITY;
+        graphView.rotationX = Math.max(-GRAPH_PITCH_LIMIT, Math.min(GRAPH_PITCH_LIMIT,
+          graphDrag.startRotationX + dy * GRAPH_ROTATE_SENSITIVITY));
+        drawGraph();
       }
     });
 
     document.addEventListener('mouseup', function () {
-      panStart = null;
-      svg.classList.remove('panning');
+      if (!graphDrag) return;
+      if (!graphDrag.moved && graphView.hoveredId) {
+        openArticle(graphView.hoveredId, true);
+      }
+      graphDrag = null;
+      if (graphView.canvas) graphView.canvas.classList.remove('panning');
     });
 
-    svg.addEventListener('wheel', function (e) {
+    canvas.addEventListener('wheel', function (e) {
       e.preventDefault();
       var delta = e.deltaY > 0 ? 0.9 : 1.1;
       zoomScale = Math.max(0.3, Math.min(3, zoomScale * delta));
-      var transform = 'translate(' + panOffset.x + 'px, ' + panOffset.y + 'px) scale(' + zoomScale + ')';
-      viewport.style.transform = transform;
+      drawGraph();
       el('rw-graph-zoom-level').textContent = Math.round(zoomScale * 100) + '%';
     }, { passive: false });
   }
@@ -658,10 +822,9 @@
   }
 
   function zoomGraph(delta) {
-    var viewport = el('rw-graph-viewport');
-    if (!viewport) return;
+    if (!graphView.ctx) return;
     zoomScale = Math.max(0.3, Math.min(3, zoomScale + delta));
-    viewport.style.transform = 'translate(' + panOffset.x + 'px, ' + panOffset.y + 'px) scale(' + zoomScale + ')';
+    drawGraph();
     el('rw-graph-zoom-level').textContent = Math.round(zoomScale * 100) + '%';
   }
 

@@ -465,43 +465,12 @@ html, body{ margin:0; padding:0; }
   flex:none;
 }
 
-#rw-graph-svg{
+#rw-graph-canvas{
   flex:1; width:100%; height:100%; background:var(--rw-ground);
-  cursor:grab;
+  cursor:grab; display:block;
 }
 
-#rw-graph-svg.panning{ cursor:grabbing; }
-
-#rw-graph-svg .rw-graph-edge{
-  stroke:var(--rw-line); stroke-width:1; fill:none; pointer-events:none;
-}
-
-#rw-graph-svg .rw-graph-node{
-  fill:#58544e; cursor:pointer;
-  transition:fill 140ms ease, opacity 140ms ease, r 140ms ease;
-}
-
-#rw-graph-svg .rw-graph-node:hover{
-  filter:drop-shadow(0 4px 8px var(--rw-shadow));
-}
-
-#rw-graph-svg .rw-graph-node.faded{ fill:#e3e1dd; opacity:0.35; }
-#rw-graph-svg .rw-graph-node.active{
-  fill:#7b68ee; filter:drop-shadow(0 2px 6px rgba(123,104,238,0.5));
-}
-
-#rw-graph-svg .rw-graph-edge.faded{ stroke:#e8e8e8; opacity:0.15; }
-#rw-graph-svg .rw-graph-edge.highlighted{ stroke:#8b7cf0; opacity:0.9; stroke-width:1.4; }
-
-#rw-graph-svg .rw-graph-label{
-  font-size:10px; text-anchor:middle; pointer-events:none; fill:var(--rw-muted);
-  user-select:none; font-family:var(--rw-font-body); font-weight:500; opacity:0;
-  transition:opacity 140ms ease;
-}
-
-#rw-graph-svg .rw-graph-label.visible{
-  opacity:1;
-}
+#rw-graph-canvas.panning{ cursor:grabbing; }
 
 .rw-graph-legend{
   display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding:0;
