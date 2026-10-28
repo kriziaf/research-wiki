@@ -4,3 +4,4 @@
 .claude/skills/*
 !.claude/skills/wiki-ingest
 !.claude/skills/wiki-unpublish
+!.claude/skills/eod
