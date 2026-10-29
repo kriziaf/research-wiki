@@ -8,7 +8,7 @@
 (function () {
   // Single source of truth for the footer's "Smol Wiki Chat vX.Y.Z" label.
   // Bump this when spec/PHASE1_PLAN.md records a new version — nothing else to touch.
-  var APP_VERSION = '0.7.1';
+  var APP_VERSION = '0.8.0';
 
   var DOCS = window.WIKI_INDEX || [];
   var titleIndex = {};
@@ -430,8 +430,11 @@
     nodes.forEach(function (n) {
       n.degree = Object.keys(wikilinkGraph[n.id] || {}).length;
     });
+    var nodeById = {};
+    nodes.forEach(function (n) { nodeById[n.id] = n; });
     graphCache.nodes = nodes;
     graphCache.edges = edges;
+    graphCache.nodeById = nodeById;
   }
 
   function layoutGraphFR(nodes, edges) {
@@ -537,6 +540,29 @@
     nodes.forEach(function (n) {
       var r = Math.sqrt(n.x * n.x + n.y * n.y + n.z * n.z);
       if (r > boundingRadius) boundingRadius = r;
+    });
+
+    // Freeze this layout as each node's spring-rest anchor, and give
+    // every edge a natural rest length from the anchor positions — the
+    // elastic drag interaction pulls nodes away from (and springs them
+    // back toward) these fixed values without ever mutating them.
+    nodes.forEach(function (n) {
+      n.anchorX = n.x;
+      n.anchorY = n.y;
+      n.anchorZ = n.z;
+      n.vx = 0;
+      n.vy = 0;
+      n.vz = 0;
+    });
+    edges.forEach(function (e) {
+      var a = graphCache.nodeById[e.source];
+      var b = graphCache.nodeById[e.target];
+      if (a && b) {
+        var rdx = a.anchorX - b.anchorX;
+        var rdy = a.anchorY - b.anchorY;
+        var rdz = a.anchorZ - b.anchorZ;
+        e.restLength = Math.sqrt(rdx * rdx + rdy * rdy + rdz * rdz) || 0.1;
+      }
     });
 
     graphCache.positions = nodes;
@@ -755,18 +781,76 @@
   }
 
   var graphDrag = null;
+  var graphDragNode = null;
+  var graphPhysicsActive = false;
   var zoomScale = 1;
   var graphInteractionsWired = false;
   var GRAPH_AUTO_ROTATE_SPEED = 0.0018;
   var GRAPH_AUTO_ROTATE_IDLE_MS = 700;
+  var GRAPH_SPRING_ANCHOR_K = 0.12;
+  var GRAPH_SPRING_EDGE_K = 0.05;
+  var GRAPH_SPRING_DAMPING = 0.78;
+  var GRAPH_SPRING_ENERGY_EPSILON = 0.02;
   var lastGraphInteraction = 0;
+
+  // Advances the elastic spring simulation one tick: every free (not
+  // actively dragged) node is pulled toward its own fixed anchor and
+  // toward maintaining each connected edge's natural rest length
+  // relative to its neighbor's *current* (not anchor) position — the
+  // edge-spring term is what makes a dragged node visibly stretch its
+  // neighbors toward it. Returns total kinetic energy so the caller
+  // can stop ticking once everything has visibly settled.
+  function tickGraphSprings() {
+    var nodes = graphCache.nodes;
+    var nodeById = graphCache.nodeById;
+
+    nodes.forEach(function (n) {
+      if (graphDragNode && n.id === graphDragNode.id) return;
+      n.fx = (n.anchorX - n.x) * GRAPH_SPRING_ANCHOR_K;
+      n.fy = (n.anchorY - n.y) * GRAPH_SPRING_ANCHOR_K;
+      n.fz = (n.anchorZ - n.z) * GRAPH_SPRING_ANCHOR_K;
+    });
+
+    graphCache.edges.forEach(function (e) {
+      var a = nodeById[e.source];
+      var b = nodeById[e.target];
+      if (!a || !b) return;
+      var dx = b.x - a.x;
+      var dy = b.y - a.y;
+      var dz = b.z - a.z;
+      var dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0.1;
+      var diff = (dist - e.restLength) * GRAPH_SPRING_EDGE_K;
+      var fx = (dx / dist) * diff;
+      var fy = (dy / dist) * diff;
+      var fz = (dz / dist) * diff;
+      if (!(graphDragNode && a.id === graphDragNode.id)) {
+        a.fx += fx; a.fy += fy; a.fz += fz;
+      }
+      if (!(graphDragNode && b.id === graphDragNode.id)) {
+        b.fx -= fx; b.fy -= fy; b.fz -= fz;
+      }
+    });
+
+    var totalEnergy = 0;
+    nodes.forEach(function (n) {
+      if (graphDragNode && n.id === graphDragNode.id) return;
+      n.vx = (n.vx + n.fx) * GRAPH_SPRING_DAMPING;
+      n.vy = (n.vy + n.fy) * GRAPH_SPRING_DAMPING;
+      n.vz = (n.vz + n.fz) * GRAPH_SPRING_DAMPING;
+      n.x += n.vx;
+      n.y += n.vy;
+      n.z += n.vz;
+      totalEnergy += n.vx * n.vx + n.vy * n.vy + n.vz * n.vz;
+    });
+    return totalEnergy;
+  }
 
   function wireGraphInteractions(canvas) {
     if (graphInteractionsWired) return;
     graphInteractionsWired = true;
 
     canvas.addEventListener('mousemove', function (e) {
-      if (graphDrag) return;
+      if (graphDrag || graphDragNode) return;
       var hit = hitTestGraph(e.clientX, e.clientY);
       if (hit !== graphView.hoveredId) {
         graphView.hoveredId = hit;
@@ -777,17 +861,77 @@
     canvas.addEventListener('mousedown', function (e) {
       if (e.button !== 0) return;
       lastGraphInteraction = performance.now();
-      graphDrag = {
-        startX: e.clientX,
-        startY: e.clientY,
-        startRotationX: graphView.rotationX,
-        startRotationY: graphView.rotationY,
-        moved: false
-      };
+      var hit = hitTestGraph(e.clientX, e.clientY);
+      if (hit) {
+        var node = graphCache.nodeById[hit];
+        var hitP = null;
+        graphView.lastProjected.some(function (p) {
+          if (p.node.id === hit) { hitP = p; return true; }
+          return false;
+        });
+        graphDragNode = {
+          id: hit,
+          startClientX: e.clientX,
+          startClientY: e.clientY,
+          startWorldX: node.x,
+          startWorldY: node.y,
+          startWorldZ: node.z,
+          combinedScale: hitP ? hitP.radius / (3 + node.degree / 5) : 1,
+          moved: false
+        };
+      } else {
+        graphDrag = {
+          startX: e.clientX,
+          startY: e.clientY,
+          startRotationX: graphView.rotationX,
+          startRotationY: graphView.rotationY,
+          moved: false
+        };
+      }
       graphView.canvas.classList.add('panning');
     });
 
     document.addEventListener('mousemove', function (e) {
+      if (graphDragNode) {
+        var dxScreen = e.clientX - graphDragNode.startClientX;
+        var dyScreen = e.clientY - graphDragNode.startClientY;
+        if (Math.abs(dxScreen) > 2 || Math.abs(dyScreen) > 2) {
+          graphDragNode.moved = true;
+        }
+        lastGraphInteraction = performance.now();
+
+        // Drag is constrained to the screen-facing plane at the node's
+        // starting depth: invert the camera's yaw+pitch rotation to
+        // turn a screen-pixel delta into a world-space delta.
+        var cosY = Math.cos(graphView.rotationY);
+        var sinY = Math.sin(graphView.rotationY);
+        var cosX = Math.cos(graphView.rotationX);
+        var sinX = Math.sin(graphView.rotationX);
+
+        var dx2 = dxScreen / graphDragNode.combinedScale;
+        var dy2 = dyScreen / graphDragNode.combinedScale;
+
+        var dy1 = dy2 * cosX;
+        var dz1 = -dy2 * sinX;
+        var dx1 = dx2;
+
+        var dxW = dx1 * cosY - dz1 * sinY;
+        var dzW = dx1 * sinY + dz1 * cosY;
+        var dyW = dy1;
+
+        var node = graphCache.nodeById[graphDragNode.id];
+        node.x = graphDragNode.startWorldX + dxW;
+        node.y = graphDragNode.startWorldY + dyW;
+        node.z = graphDragNode.startWorldZ + dzW;
+        node.vx = 0;
+        node.vy = 0;
+        node.vz = 0;
+
+        graphPhysicsActive = true;
+        drawGraph();
+        return;
+      }
+
       if (!graphDrag) return;
       var dx = e.clientX - graphDrag.startX;
       var dy = e.clientY - graphDrag.startY;
@@ -802,6 +946,15 @@
     });
 
     document.addEventListener('mouseup', function () {
+      if (graphDragNode) {
+        lastGraphInteraction = performance.now();
+        if (!graphDragNode.moved) {
+          openArticle(graphDragNode.id, true);
+        }
+        graphDragNode = null;
+        if (graphView.canvas) graphView.canvas.classList.remove('panning');
+        return;
+      }
       if (!graphDrag) return;
       lastGraphInteraction = performance.now();
       if (!graphDrag.moved && graphView.hoveredId) {
@@ -824,11 +977,26 @@
   }
 
   function autoRotateGraph(now) {
-    if (app.dataset.screen === 'graph' && !graphDrag &&
+    var needsRedraw = false;
+
+    if (graphDragNode) graphPhysicsActive = true;
+
+    if (graphPhysicsActive) {
+      var energy = tickGraphSprings();
+      needsRedraw = true;
+      if (!graphDragNode && energy < GRAPH_SPRING_ENERGY_EPSILON) {
+        graphPhysicsActive = false;
+      }
+    }
+
+    if (app.dataset.screen === 'graph' && !graphDrag && !graphDragNode &&
       (now - lastGraphInteraction) > GRAPH_AUTO_ROTATE_IDLE_MS) {
       graphView.rotationY += GRAPH_AUTO_ROTATE_SPEED;
-      drawGraph();
+      needsRedraw = true;
     }
+
+    if (needsRedraw && graphView.ctx) drawGraph();
+
     requestAnimationFrame(autoRotateGraph);
   }
 
