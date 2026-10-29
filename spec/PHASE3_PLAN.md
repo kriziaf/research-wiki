@@ -1,33 +1,22 @@
 # Phase 3 Plan — Civic Tech Research Portal
 
-Status: **scoping/planning — nothing in this doc is built yet.** Phase 1 (MVP1 through v0.5.0) is complete, documented in [`PHASE1_PLAN.md`](./PHASE1_PLAN.md). Phase 2 (Ingest/Analyze UI, Login/User Accounts, the built Wiki-Ingest skill, and the parked author-credit task) is documented separately in [`PHASE2_PLAN.md`](./PHASE2_PLAN.md) and stays scoped to that doc — Phase 3 is kept separate rather than folded in.
+Status: **Graph View is built and shipped** (see below) — everything else in this doc is still scoping/planning. Phase 1 (MVP1 through v0.5.0) is complete, documented in [`PHASE1_PLAN.md`](./PHASE1_PLAN.md). Phase 2 (Ingest/Analyze UI, Login/User Accounts, the built Wiki-Ingest skill, and the parked author-credit task) is documented separately in [`PHASE2_PLAN.md`](./PHASE2_PLAN.md) and stays scoped to that doc — Phase 3 is kept separate rather than folded in.
 
 This doc collects larger, more exploratory features that go beyond Phase 2's scope.
 
-## Graph View (Obsidian-style) — not yet built, 2026-10-10
+## Graph View (Obsidian-style) — built, v0.6.0 through v0.8.0 (2026-10-28)
 
-The user asked for a level-of-effort estimate for a graph visualization of the wiki corpus, similar to Obsidian's graph view — documents as nodes, `[[wikilinks]]` as edges. Recorded here as a planned Phase 3 feature rather than Phase 2, per explicit instruction to keep it separate from the Login feature.
+The level-of-effort estimate below (Tier 1/2/3, D3-vs-hand-rolled) was the original plan. What actually shipped deviated from it in two real ways, then iterated well past Tier 1 scope. Full dated build history, including what was tried, reverted, and why, lives in [`PHASE1_PLAN.md`](./PHASE1_PLAN.md)'s v0.6.0–v0.9.0 entries (search that file for "Graph View" / "3D globe" / "Elastic Node Dragging") — this section just summarizes where it landed.
 
-**Real numbers, pulled from the actual corpus** (not estimated): 93 nodes, 385 unique undirected edges (deduped from 807 raw wikilink occurrences), 1 isolated node (no links in or out), and **105 dangling wikilinks** — links to titles not present in the corpus (raw source references, or concepts mentioned but not yet ingested as their own wiki page). Graph size itself is small by Obsidian standards (it routinely handles thousands of notes); the constraint is implementation effort, not scale.
+- **Dependency choice reversed**: shipped **hand-rolled vanilla JS**, not D3. At ~108 nodes/~420 edges the dataset is too small for D3's performance case to matter, and the user preferred zero added network weight over the modest implementation-time savings.
+- **Went past Tier 1 into Tier 2+ territory**, then further: a 3D-perspective "globe" rendering (rotation, depth occlusion, autorotation) was built on Canvas2D, then an Obsidian-reference screenshot prompted a full rewrite back to a flat 2D force-directed layout with collision/separation packing (closes the gaps charge-repulsion-alone leaves, for an evenly-tiled silhouette) — then reverted back to the 3D globe per explicit user request, since the user preferred the autorotation effect and felt the 2D version hadn't actually delivered the Obsidian feel they wanted. **Current shipped state (v0.8.0, reverted from v0.9.0 — commit `7cdd43b`): 3D perspective globe, autorotation, drag-to-rotate the camera, and Obsidian-style elastic node dragging** (grab a node, it and its connected neighbors displace like springs with edges visibly stretching, bouncy settle on release).
+- Click a node → existing `openArticle()`. Hover-to-highlight neighbors (dim everything else) — the signature Obsidian interaction from the original Tier 2 scope — is in. Labels show on hover only, not always-on. Pan (click-drag empty space, now camera-rotate in the 3D version) + wheel/button zoom are in.
+- **Entry point resolved**: a hamburger-menu "Graph View" item, alongside Ask Wiki / Search Topics / Log in.
+- **A real bug was found and fixed, then reintroduced by the v0.9.0→v0.8.0 revert**: a large/fast node-drag could make the elastic spring simulation diverge instead of settle (confirmed via console instrumentation — kinetic energy exploding past 140,000 instead of decaying). Fixed with a per-tick speed clamp in the v0.9.0 2D rewrite; reverting back to v0.8.0 brought the unfixed version back since the revert was a clean rollback rather than a selective one. **Not yet re-applied** — worth porting the speed-clamp fix onto the current v0.8.0 code on its own, since it's an isolated, low-risk change that doesn't affect rotation/autorotation behavior.
 
-### Effort estimate, by fidelity tier
+### Not shipped / still open
 
-**Tier 1 — Static graph, minimal (~half day, 3–5 hrs)**
-Force-directed layout via D3's `d3-force` module, loaded from CDN (same no-build-step pattern already used for the Google Fonts `<script>` tags in `index.html`). Rendered as SVG, simulated once and frozen. Click a node → existing `openArticle()`. Color by type via the existing `--rw-type-concept/entity/project` tokens. Basic pan/zoom. New screen using the existing stack/nav pattern (same architecture as the Topics page).
-
-**Tier 2 — Interactive, Obsidian-like (~1–1.5 days, 8–12 hrs) — recommended**
-Adds: continuous gentle physics (nodes drift like real Obsidian rather than freezing), draggable nodes, hover-to-highlight (dim everything except the hovered node's neighbors — the signature Obsidian interaction), mouse-wheel zoom + drag-pan, labels that appear on hover/zoom-in rather than always-on (93 simultaneous labels would be cluttered), a small type-color legend.
-
-**Tier 3 — Full polish (~2–3 days total, 16–24 hrs)**
-Adds on top of Tier 2: filter-by-tag (reuse the Topics page's existing tag data/logic directly), search-to-highlight within the graph, a "local graph" mode (centered on the currently-open article, mirroring Obsidian's per-note mini-graph) alongside the full-vault view, a decision + implementation for the 105 dangling links (render as ghost/ring nodes vs. silently drop them), mobile touch support, a performance pass, and this spec entry updated to reflect what shipped.
-
-### Key open decision
-
-**Dependency choice**: pull in D3 (`d3-force` + `d3-zoom` via CDN, battle-tested, fast to integrate) vs. hand-roll the physics simulation in vanilla JS to stay fully dependency-free like the rest of the app's logic. Recommendation: **use D3** — this repo already isn't purist about zero dependencies (Google Fonts is an external load per `spec/DESIGN_STYLE_GUIDE.md`'s v0.4.3 typography entry), and hand-rolling force-directed layout well would itself consume most of Tier 1's estimated time.
-
-**Recommended scope for a first pass: Tier 2.** Reads as genuinely "the Obsidian graph" rather than a token gesture, without the extra few days Tier 3's filtering/local-graph/mobile work adds. Tag-filtering and local-graph mode are natural Tier 3 follow-ons once Tier 2 validates the approach.
-
-### Not yet decided
-
-- Entry point: a new hamburger-menu item (alongside Ask Wiki / Search Topics / Log in, built in the dropdown-menu work this session) vs. a button on the Topics page vs. somewhere else.
-- Whether dangling-wikilink ghost nodes are worth building at all, or whether resolving those 105 links by ingesting the missing source concepts (via the `wiki-ingest` skill, `spec/PHASE2_PLAN.md`) is the better fix — shrinks the dangling-link problem at the data layer instead of the UI layer.
+- **Tier 3 items**: filter-by-tag, search-to-highlight, a "local graph" mode centered on the open article, and a decision on the dangling-wikilink ghost-node question below. None of these were built; the effort went into the 3D/2D rendering-approach exploration instead.
+- **Dangling wikilinks**: whether to render ghost/ring nodes for links to titles not present in the corpus, or resolve them at the data layer by ingesting the missing source concepts (`wiki-ingest` skill, `spec/PHASE2_PLAN.md`) — still undecided, not implemented either way.
+- **Tag-based "sphere of spheres" clustering**: a follow-on idea discussed but not built — grouping nodes into per-tag clusters that each form their own tight sub-layout, positioned near each other. Scoped and then deliberately split off from the elastic-drag work to keep them testable independently; not picked back up after the 2D-vs-3D direction question came up.
+- **Mobile touch support and a performance pass** (both originally Tier 3 scope): not built.
