@@ -8,7 +8,7 @@
 (function () {
   // Single source of truth for the footer's "Smol Wiki Chat vX.Y.Z" label.
   // Bump this when spec/PHASE1_PLAN.md records a new version — nothing else to touch.
-  var APP_VERSION = '0.8.0';
+  var APP_VERSION = '0.9.0';
 
   var DOCS = window.WIKI_INDEX || [];
   var titleIndex = {};
@@ -400,7 +400,7 @@
     setRoute({ screen: 'ingest-log' });
   }
 
-  /* ---------- graph view (3D globe, Canvas2D) ---------- */
+  /* ---------- graph view (2D force-directed, Canvas2D) ---------- */
 
   var graphCache = { nodes: null, edges: null, positions: null };
 
@@ -409,8 +409,8 @@
   var GRAPH_COLOR_FADED = '#e3e1dd';
   var GRAPH_COLOR_EDGE_HIGHLIGHT = '#8b7cf0';
   var GRAPH_MIN_HIT_RADIUS = 7;
-  var GRAPH_ROTATE_SENSITIVITY = 0.006;
-  var GRAPH_PITCH_LIMIT = 1.45;
+  var GRAPH_COLLISION_PADDING = 2.5;
+  var GRAPH_COLLISION_STRENGTH = 3;
 
   function buildGraphData() {
     if (graphCache.nodes) return;
@@ -445,18 +445,16 @@
     nodes.forEach(function (n) {
       n.x = (Math.random() - 0.5) * spread;
       n.y = (Math.random() - 0.5) * spread;
-      n.z = (Math.random() - 0.5) * spread;
       n.vx = 0;
       n.vy = 0;
-      n.vz = 0;
     });
 
-    var k = Math.sqrt(width * height / nodes.length) * 0.65;
+    var k = Math.sqrt(width * height / nodes.length) * 0.35;
     var iterations = 300;
     var temperature = Math.sqrt(width * width + height * height) / 10;
 
     for (var iter = 0; iter < iterations; iter++) {
-      nodes.forEach(function (n) { n.fx = 0; n.fy = 0; n.fz = 0; });
+      nodes.forEach(function (n) { n.fx = 0; n.fy = 0; });
 
       for (var i = 0; i < nodes.length; i++) {
         for (var j = i + 1; j < nodes.length; j++) {
@@ -464,15 +462,27 @@
           var b = nodes[j];
           var dx = a.x - b.x;
           var dy = a.y - b.y;
-          var dz = a.z - b.z;
-          var dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0.1;
+          var dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
           var repel = (k * k) / (dist + 0.1);
-          a.fx += (dx / dist) * repel;
-          a.fy += (dy / dist) * repel;
-          a.fz += (dz / dist) * repel;
-          b.fx -= (dx / dist) * repel;
-          b.fy -= (dy / dist) * repel;
-          b.fz -= (dz / dist) * repel;
+
+          // Hard collision on top of charge repulsion: once two nodes'
+          // actual rendered circles would overlap, add a strong short-
+          // range push proportional to the overlap. Charge repulsion
+          // alone decays continuously and leaves gaps between nearby
+          // low-degree nodes; this firm constraint is what closes those
+          // gaps and produces an evenly-tiled, "filled" silhouette
+          // instead of a loose scatter (the same role d3.forceCollide
+          // plays alongside charge repulsion in force-graph tools).
+          var radiusA = 3 + (a.degree / 5);
+          var radiusB = 3 + (b.degree / 5);
+          var minDist = radiusA + radiusB + GRAPH_COLLISION_PADDING;
+          var collide = dist < minDist ? (minDist - dist) * GRAPH_COLLISION_STRENGTH : 0;
+          var push = repel + collide;
+
+          a.fx += (dx / dist) * push;
+          a.fy += (dy / dist) * push;
+          b.fx -= (dx / dist) * push;
+          b.fy -= (dy / dist) * push;
         }
       }
 
@@ -482,64 +492,46 @@
         if (a && b) {
           var dx = a.x - b.x;
           var dy = a.y - b.y;
-          var dz = a.z - b.z;
-          var dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0.1;
+          var dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
           var attract = (dist * dist) / (k * 1.8);
           a.fx -= (dx / dist) * attract;
           a.fy -= (dy / dist) * attract;
-          a.fz -= (dz / dist) * attract;
           b.fx += (dx / dist) * attract;
           b.fy += (dy / dist) * attract;
-          b.fz += (dz / dist) * attract;
         }
       });
 
-      var centerGrav = 0.03;
+      var centerGrav = 0.04;
       nodes.forEach(function (n) {
         n.fx -= n.x * centerGrav;
         n.fy -= n.y * centerGrav;
-        n.fz -= n.z * centerGrav;
       });
 
       nodes.forEach(function (n) {
         n.vx = (n.vx + n.fx) * 0.9;
         n.vy = (n.vy + n.fy) * 0.9;
-        n.vz = (n.vz + n.fz) * 0.9;
-        var speed = Math.sqrt(n.vx * n.vx + n.vy * n.vy + n.vz * n.vz);
+        var speed = Math.sqrt(n.vx * n.vx + n.vy * n.vy);
         if (speed > temperature) {
           n.vx = (n.vx / speed) * temperature;
           n.vy = (n.vy / speed) * temperature;
-          n.vz = (n.vz / speed) * temperature;
         }
         n.x += n.vx;
         n.y += n.vy;
-        n.z += n.vz;
       });
 
       temperature *= 0.995;
     }
 
-    // Defensive radial clamp: guarantees a bounded, roughly spherical
-    // silhouette for the camera framing even if a node's simulated
-    // trajectory escapes the main cluster (the old SVG renderer never
-    // needed this since an off-chart node simply drew off-screen; the
-    // 3D camera derives its framing from the overall bounding radius,
-    // so one runaway point would otherwise skew the whole projection).
+    // Defensive radial clamp: keeps the layout bounded to a reasonable
+    // disc even if a node's simulated trajectory escapes the main mass.
     var clampRadius = spread * 0.75;
     nodes.forEach(function (n) {
-      var r = Math.sqrt(n.x * n.x + n.y * n.y + n.z * n.z);
+      var r = Math.sqrt(n.x * n.x + n.y * n.y);
       if (r > clampRadius) {
         var f = clampRadius / r;
         n.x *= f;
         n.y *= f;
-        n.z *= f;
       }
-    });
-
-    var boundingRadius = 0;
-    nodes.forEach(function (n) {
-      var r = Math.sqrt(n.x * n.x + n.y * n.y + n.z * n.z);
-      if (r > boundingRadius) boundingRadius = r;
     });
 
     // Freeze this layout as each node's spring-rest anchor, and give
@@ -549,10 +541,8 @@
     nodes.forEach(function (n) {
       n.anchorX = n.x;
       n.anchorY = n.y;
-      n.anchorZ = n.z;
       n.vx = 0;
       n.vy = 0;
-      n.vz = 0;
     });
     edges.forEach(function (e) {
       var a = graphCache.nodeById[e.source];
@@ -560,13 +550,11 @@
       if (a && b) {
         var rdx = a.anchorX - b.anchorX;
         var rdy = a.anchorY - b.anchorY;
-        var rdz = a.anchorZ - b.anchorZ;
-        e.restLength = Math.sqrt(rdx * rdx + rdy * rdy + rdz * rdz) || 0.1;
+        e.restLength = Math.sqrt(rdx * rdx + rdy * rdy) || 0.1;
       }
     });
 
     graphCache.positions = nodes;
-    graphCache.boundingRadius = boundingRadius || spread / 2;
   }
 
   var graphView = {
@@ -574,8 +562,8 @@
     ctx: null,
     width: 0,
     height: 0,
-    rotationX: -0.25,
-    rotationY: 0,
+    panX: 0,
+    panY: 0,
     hoveredId: null,
     lastProjected: [],
     colors: { ground: '#fafaf8', line: '#e2ddd6', muted: '#726b64' }
@@ -603,34 +591,16 @@
   }
 
   function projectGraphNodes() {
-    var cameraDistance = graphCache.boundingRadius * 2.2;
-    var focalLength = cameraDistance;
-    var cosY = Math.cos(graphView.rotationY);
-    var sinY = Math.sin(graphView.rotationY);
-    var cosX = Math.cos(graphView.rotationX);
-    var sinX = Math.sin(graphView.rotationX);
-    var centerX = graphView.width / 2;
-    var centerY = graphView.height / 2;
-    var R = graphCache.boundingRadius || 1;
+    var centerX = graphView.width / 2 + graphView.panX;
+    var centerY = graphView.height / 2 + graphView.panY;
 
     return graphCache.nodes.map(function (n) {
-      var x1 = n.x * cosY + n.z * sinY;
-      var z1 = -n.x * sinY + n.z * cosY;
-      var y2 = n.y * cosX - z1 * sinX;
-      var z2 = n.y * sinX + z1 * cosX;
-      var x2 = x1;
-
-      var scale = focalLength / (cameraDistance - z2);
-      var depthT = Math.max(0, Math.min(1, (z2 + R) / (2 * R)));
       var baseRadius = 3 + (n.degree / 5);
-
       return {
         node: n,
-        sx: centerX + x2 * scale * zoomScale,
-        sy: centerY + y2 * scale * zoomScale,
-        z: z2,
-        depthT: depthT,
-        radius: baseRadius * scale * zoomScale
+        sx: centerX + n.x * zoomScale,
+        sy: centerY + n.y * zoomScale,
+        radius: baseRadius * zoomScale
       };
     });
   }
@@ -659,7 +629,6 @@
       if (!a || !b) return;
 
       var isConnected = hoveredId && (e.source === hoveredId || e.target === hoveredId);
-      var depthAlpha = 0.15 + 0.55 * ((a.depthT + b.depthT) / 2);
 
       ctx.beginPath();
       ctx.moveTo(a.sx, a.sy);
@@ -676,17 +645,15 @@
         }
       } else {
         ctx.strokeStyle = graphView.colors.line;
-        ctx.globalAlpha = depthAlpha;
+        ctx.globalAlpha = 0.45;
         ctx.lineWidth = 0.8;
       }
       ctx.stroke();
     });
 
-    // nodes, back-to-front for correct occlusion
-    var sorted = projected.slice().sort(function (a, b) { return a.z - b.z; });
     var hoveredP = null;
 
-    sorted.forEach(function (p) {
+    projected.forEach(function (p) {
       var isHovered = hoveredId === p.node.id;
       var isNeighbor = neighbors && neighbors[p.node.id];
 
@@ -702,7 +669,7 @@
         ctx.globalAlpha = 0.35;
       } else {
         ctx.fillStyle = GRAPH_COLOR_BASE;
-        ctx.globalAlpha = 0.35 + 0.65 * p.depthT;
+        ctx.globalAlpha = 1;
       }
       ctx.fill();
     });
@@ -785,13 +752,11 @@
   var graphPhysicsActive = false;
   var zoomScale = 1;
   var graphInteractionsWired = false;
-  var GRAPH_AUTO_ROTATE_SPEED = 0.0018;
-  var GRAPH_AUTO_ROTATE_IDLE_MS = 700;
   var GRAPH_SPRING_ANCHOR_K = 0.12;
   var GRAPH_SPRING_EDGE_K = 0.05;
   var GRAPH_SPRING_DAMPING = 0.78;
   var GRAPH_SPRING_ENERGY_EPSILON = 0.02;
-  var lastGraphInteraction = 0;
+  var GRAPH_SPRING_MAX_SPEED = 35;
 
   // Advances the elastic spring simulation one tick: every free (not
   // actively dragged) node is pulled toward its own fixed anchor and
@@ -808,7 +773,6 @@
       if (graphDragNode && n.id === graphDragNode.id) return;
       n.fx = (n.anchorX - n.x) * GRAPH_SPRING_ANCHOR_K;
       n.fy = (n.anchorY - n.y) * GRAPH_SPRING_ANCHOR_K;
-      n.fz = (n.anchorZ - n.z) * GRAPH_SPRING_ANCHOR_K;
     });
 
     graphCache.edges.forEach(function (e) {
@@ -817,17 +781,15 @@
       if (!a || !b) return;
       var dx = b.x - a.x;
       var dy = b.y - a.y;
-      var dz = b.z - a.z;
-      var dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0.1;
+      var dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
       var diff = (dist - e.restLength) * GRAPH_SPRING_EDGE_K;
       var fx = (dx / dist) * diff;
       var fy = (dy / dist) * diff;
-      var fz = (dz / dist) * diff;
       if (!(graphDragNode && a.id === graphDragNode.id)) {
-        a.fx += fx; a.fy += fy; a.fz += fz;
+        a.fx += fx; a.fy += fy;
       }
       if (!(graphDragNode && b.id === graphDragNode.id)) {
-        b.fx -= fx; b.fy -= fy; b.fz -= fz;
+        b.fx -= fx; b.fy -= fy;
       }
     });
 
@@ -836,11 +798,21 @@
       if (graphDragNode && n.id === graphDragNode.id) return;
       n.vx = (n.vx + n.fx) * GRAPH_SPRING_DAMPING;
       n.vy = (n.vy + n.fy) * GRAPH_SPRING_DAMPING;
-      n.vz = (n.vz + n.fz) * GRAPH_SPRING_DAMPING;
+      // Cap per-tick speed: a fast or large drag can stretch an edge
+      // far past its rest length in a single frame, producing a huge
+      // one-shot spring force. Without a hard speed limit that force
+      // can out-grow the damping term and diverge instead of settling
+      // (an explicit-Euler instability) — capping converts "too much
+      // force" into "bounded motion that takes a few more frames to
+      // settle" instead of a runaway oscillation.
+      var speed = Math.sqrt(n.vx * n.vx + n.vy * n.vy);
+      if (speed > GRAPH_SPRING_MAX_SPEED) {
+        n.vx = (n.vx / speed) * GRAPH_SPRING_MAX_SPEED;
+        n.vy = (n.vy / speed) * GRAPH_SPRING_MAX_SPEED;
+      }
       n.x += n.vx;
       n.y += n.vy;
-      n.z += n.vz;
-      totalEnergy += n.vx * n.vx + n.vy * n.vy + n.vz * n.vz;
+      totalEnergy += n.vx * n.vx + n.vy * n.vy;
     });
     return totalEnergy;
   }
@@ -860,31 +832,23 @@
 
     canvas.addEventListener('mousedown', function (e) {
       if (e.button !== 0) return;
-      lastGraphInteraction = performance.now();
       var hit = hitTestGraph(e.clientX, e.clientY);
       if (hit) {
         var node = graphCache.nodeById[hit];
-        var hitP = null;
-        graphView.lastProjected.some(function (p) {
-          if (p.node.id === hit) { hitP = p; return true; }
-          return false;
-        });
         graphDragNode = {
           id: hit,
           startClientX: e.clientX,
           startClientY: e.clientY,
           startWorldX: node.x,
           startWorldY: node.y,
-          startWorldZ: node.z,
-          combinedScale: hitP ? hitP.radius / (3 + node.degree / 5) : 1,
           moved: false
         };
       } else {
         graphDrag = {
           startX: e.clientX,
           startY: e.clientY,
-          startRotationX: graphView.rotationX,
-          startRotationY: graphView.rotationY,
+          startPanX: graphView.panX,
+          startPanY: graphView.panY,
           moved: false
         };
       }
@@ -898,34 +862,12 @@
         if (Math.abs(dxScreen) > 2 || Math.abs(dyScreen) > 2) {
           graphDragNode.moved = true;
         }
-        lastGraphInteraction = performance.now();
-
-        // Drag is constrained to the screen-facing plane at the node's
-        // starting depth: invert the camera's yaw+pitch rotation to
-        // turn a screen-pixel delta into a world-space delta.
-        var cosY = Math.cos(graphView.rotationY);
-        var sinY = Math.sin(graphView.rotationY);
-        var cosX = Math.cos(graphView.rotationX);
-        var sinX = Math.sin(graphView.rotationX);
-
-        var dx2 = dxScreen / graphDragNode.combinedScale;
-        var dy2 = dyScreen / graphDragNode.combinedScale;
-
-        var dy1 = dy2 * cosX;
-        var dz1 = -dy2 * sinX;
-        var dx1 = dx2;
-
-        var dxW = dx1 * cosY - dz1 * sinY;
-        var dzW = dx1 * sinY + dz1 * cosY;
-        var dyW = dy1;
 
         var node = graphCache.nodeById[graphDragNode.id];
-        node.x = graphDragNode.startWorldX + dxW;
-        node.y = graphDragNode.startWorldY + dyW;
-        node.z = graphDragNode.startWorldZ + dzW;
+        node.x = graphDragNode.startWorldX + dxScreen / zoomScale;
+        node.y = graphDragNode.startWorldY + dyScreen / zoomScale;
         node.vx = 0;
         node.vy = 0;
-        node.vz = 0;
 
         graphPhysicsActive = true;
         drawGraph();
@@ -937,17 +879,14 @@
       var dy = e.clientY - graphDrag.startY;
       if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
         graphDrag.moved = true;
-        lastGraphInteraction = performance.now();
-        graphView.rotationY = graphDrag.startRotationY + dx * GRAPH_ROTATE_SENSITIVITY;
-        graphView.rotationX = Math.max(-GRAPH_PITCH_LIMIT, Math.min(GRAPH_PITCH_LIMIT,
-          graphDrag.startRotationX + dy * GRAPH_ROTATE_SENSITIVITY));
+        graphView.panX = graphDrag.startPanX + dx;
+        graphView.panY = graphDrag.startPanY + dy;
         drawGraph();
       }
     });
 
     document.addEventListener('mouseup', function () {
       if (graphDragNode) {
-        lastGraphInteraction = performance.now();
         if (!graphDragNode.moved) {
           openArticle(graphDragNode.id, true);
         }
@@ -956,7 +895,6 @@
         return;
       }
       if (!graphDrag) return;
-      lastGraphInteraction = performance.now();
       if (!graphDrag.moved && graphView.hoveredId) {
         openArticle(graphView.hoveredId, true);
       }
@@ -966,38 +904,30 @@
 
     canvas.addEventListener('wheel', function (e) {
       e.preventDefault();
-      lastGraphInteraction = performance.now();
       var delta = e.deltaY > 0 ? 0.9 : 1.1;
       zoomScale = Math.max(0.3, Math.min(3, zoomScale * delta));
       drawGraph();
       el('rw-graph-zoom-level').textContent = Math.round(zoomScale * 100) + '%';
     }, { passive: false });
 
-    requestAnimationFrame(autoRotateGraph);
+    requestAnimationFrame(graphPhysicsLoop);
   }
 
-  function autoRotateGraph(now) {
-    var needsRedraw = false;
-
+  // Keeps the elastic spring simulation advancing only while it's
+  // doing meaningful work: actively dragging a node, or still bouncing
+  // back from a release. Once settled and idle it's a no-op each frame.
+  function graphPhysicsLoop() {
     if (graphDragNode) graphPhysicsActive = true;
 
     if (graphPhysicsActive) {
       var energy = tickGraphSprings();
-      needsRedraw = true;
+      drawGraph();
       if (!graphDragNode && energy < GRAPH_SPRING_ENERGY_EPSILON) {
         graphPhysicsActive = false;
       }
     }
 
-    if (app.dataset.screen === 'graph' && !graphDrag && !graphDragNode &&
-      (now - lastGraphInteraction) > GRAPH_AUTO_ROTATE_IDLE_MS) {
-      graphView.rotationY += GRAPH_AUTO_ROTATE_SPEED;
-      needsRedraw = true;
-    }
-
-    if (needsRedraw && graphView.ctx) drawGraph();
-
-    requestAnimationFrame(autoRotateGraph);
+    requestAnimationFrame(graphPhysicsLoop);
   }
 
   function showGraph() {
