@@ -8,7 +8,7 @@
 (function () {
   // Single source of truth for the footer's "Smol Wiki Chat vX.Y.Z" label.
   // Bump this when spec/PHASE1_PLAN.md records a new version — nothing else to touch.
-  var APP_VERSION = '0.8.0';
+  var APP_VERSION = '0.10.0';
 
   var DOCS = window.WIKI_INDEX || [];
   var titleIndex = {};
@@ -405,16 +405,22 @@
   var graphCache = { nodes: null, edges: null, positions: null };
 
   var GRAPH_COLOR_BASE = '#58544e';
+  var GRAPH_COLOR_NODE_OUTLINE = '#b0aba3';
   var GRAPH_COLOR_ACTIVE = '#7b68ee';
   var GRAPH_COLOR_FADED = '#e3e1dd';
   var GRAPH_COLOR_EDGE_HIGHLIGHT = '#8b7cf0';
   var GRAPH_MIN_HIT_RADIUS = 7;
   var GRAPH_ROTATE_SENSITIVITY = 0.006;
   var GRAPH_PITCH_LIMIT = 1.45;
+  var GRAPH_FLAT_2D_MODE = true; // testing flat 2D sphere silhouette — no rotation/perspective. Set false to restore the 3D globe.
+  var GRAPH_FLOWER_LAYOUT_MODE = true; // testing tag-based "flower" clusters. Set false to restore the plain packed-disc 2D layout.
+  var GRAPH_MIN_CLUSTER_SIZE = 4; // a tag needs at least this many docs to get its own flower; smaller ones fall into "misc"
+  var GRAPH_WOBBLE_AMPLITUDE = 3; // px of idle ambient sway per node, independent of drag/physics
+  var GRAPH_WOBBLE_SPEED = 0.0015; // angular speed (rad/ms) of that sway
 
   function buildGraphData() {
     if (graphCache.nodes) return;
-    var nodes = DOCS.map(function (d) { return { id: d.id, title: d.title, type: d.type }; });
+    var nodes = DOCS.map(function (d) { return { id: d.id, title: d.title, type: d.type, tags: d.tags }; });
     var edgeSet = {};
     Object.keys(wikilinkGraph).forEach(function (nodeId) {
       var neighbors = wikilinkGraph[nodeId];
@@ -429,6 +435,11 @@
     });
     nodes.forEach(function (n) {
       n.degree = Object.keys(wikilinkGraph[n.id] || {}).length;
+      // Per-node phase/speed for the idle ambient wobble (drawGraph) —
+      // randomized once so nodes don't all sway in lockstep.
+      n.wobblePhaseX = Math.random() * Math.PI * 2;
+      n.wobblePhaseY = Math.random() * Math.PI * 2;
+      n.wobbleSpeed = GRAPH_WOBBLE_SPEED * (0.75 + Math.random() * 0.5);
     });
     var nodeById = {};
     nodes.forEach(function (n) { nodeById[n.id] = n; });
@@ -519,28 +530,29 @@
       temperature *= 0.995;
     }
 
-    // Defensive radial clamp: guarantees a bounded, roughly spherical
-    // silhouette for the camera framing even if a node's simulated
-    // trajectory escapes the main cluster (the old SVG renderer never
-    // needed this since an off-chart node simply drew off-screen; the
-    // 3D camera derives its framing from the overall bounding radius,
-    // so one runaway point would otherwise skew the whole projection).
-    var clampRadius = spread * 0.75;
+    // Sphere snap: force every node onto the same radius from center,
+    // preserving the direction the force simulation settled it into. The
+    // old version only clamped nodes that escaped a threshold, which left
+    // most of the cluster at whatever irregular radius the sim produced —
+    // this makes the globe an actual, visually symmetric sphere.
+    var R = spread * 0.75;
     nodes.forEach(function (n) {
       var r = Math.sqrt(n.x * n.x + n.y * n.y + n.z * n.z);
-      if (r > clampRadius) {
-        var f = clampRadius / r;
+      if (r < 0.001) {
+        var theta = Math.random() * Math.PI * 2;
+        var phi = Math.acos(2 * Math.random() - 1);
+        n.x = R * Math.sin(phi) * Math.cos(theta);
+        n.y = R * Math.sin(phi) * Math.sin(theta);
+        n.z = R * Math.cos(phi);
+      } else {
+        var f = R / r;
         n.x *= f;
         n.y *= f;
         n.z *= f;
       }
     });
 
-    var boundingRadius = 0;
-    nodes.forEach(function (n) {
-      var r = Math.sqrt(n.x * n.x + n.y * n.y + n.z * n.z);
-      if (r > boundingRadius) boundingRadius = r;
-    });
+    var boundingRadius = R;
 
     // Freeze this layout as each node's spring-rest anchor, and give
     // every edge a natural rest length from the anchor positions — the
@@ -569,12 +581,345 @@
     graphCache.boundingRadius = boundingRadius || spread / 2;
   }
 
+  var GRAPH_COLLISION_PADDING = 2.5;
+  var GRAPH_COLLISION_STRENGTH = 3;
+
+  // Flat 2D layout: pure x/y force-directed simulation (no sphere/z-axis)
+  // with a hard collision force layered on top of charge repulsion. Charge
+  // repulsion alone decays continuously and leaves gaps between nearby
+  // low-degree nodes; the collision term fires once two nodes' rendered
+  // circles would actually overlap and pushes them apart proportional to
+  // the overlap — the same role d3.forceCollide() plays in force-graph
+  // tools — which is what produces a tightly tiled, gap-free disc instead
+  // of the sparse/ring-like result you get from flattening a 3D sphere.
+  function layoutGraphFR2D(nodes, edges) {
+    var width = window.innerWidth;
+    var height = window.innerHeight - 60;
+    var spread = Math.min(width, height);
+
+    nodes.forEach(function (n) {
+      n.x = (Math.random() - 0.5) * spread;
+      n.y = (Math.random() - 0.5) * spread;
+      n.z = 0;
+      n.vx = 0;
+      n.vy = 0;
+      n.vz = 0;
+    });
+
+    var k = Math.sqrt(width * height / nodes.length) * 0.35;
+    var iterations = 300;
+    var temperature = Math.sqrt(width * width + height * height) / 10;
+
+    for (var iter = 0; iter < iterations; iter++) {
+      nodes.forEach(function (n) { n.fx = 0; n.fy = 0; });
+
+      for (var i = 0; i < nodes.length; i++) {
+        for (var j = i + 1; j < nodes.length; j++) {
+          var a = nodes[i];
+          var b = nodes[j];
+          var dx = a.x - b.x;
+          var dy = a.y - b.y;
+          var dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
+          var repel = (k * k) / (dist + 0.1);
+
+          var radiusA = 1.5 + (a.degree / 10);
+          var radiusB = 1.5 + (b.degree / 10);
+          var minDist = radiusA + radiusB + GRAPH_COLLISION_PADDING;
+          var collide = dist < minDist ? (minDist - dist) * GRAPH_COLLISION_STRENGTH : 0;
+          var push = repel + collide;
+
+          a.fx += (dx / dist) * push;
+          a.fy += (dy / dist) * push;
+          b.fx -= (dx / dist) * push;
+          b.fy -= (dy / dist) * push;
+        }
+      }
+
+      edges.forEach(function (e) {
+        var a = nodes.find(function (n) { return n.id === e.source; });
+        var b = nodes.find(function (n) { return n.id === e.target; });
+        if (a && b) {
+          var dx = a.x - b.x;
+          var dy = a.y - b.y;
+          var dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
+          var attract = (dist * dist) / (k * 1.8);
+          a.fx -= (dx / dist) * attract;
+          a.fy -= (dy / dist) * attract;
+          b.fx += (dx / dist) * attract;
+          b.fy += (dy / dist) * attract;
+        }
+      });
+
+      var centerGrav = 0.04;
+      nodes.forEach(function (n) {
+        n.fx -= n.x * centerGrav;
+        n.fy -= n.y * centerGrav;
+      });
+
+      nodes.forEach(function (n) {
+        n.vx = (n.vx + n.fx) * 0.9;
+        n.vy = (n.vy + n.fy) * 0.9;
+        var speed = Math.sqrt(n.vx * n.vx + n.vy * n.vy);
+        if (speed > temperature) {
+          n.vx = (n.vx / speed) * temperature;
+          n.vy = (n.vy / speed) * temperature;
+        }
+        n.x += n.vx;
+        n.y += n.vy;
+      });
+
+      temperature *= 0.995;
+    }
+
+    // Defensive radial clamp: keeps the layout bounded to a reasonable
+    // disc even if a node's simulated trajectory escapes the main mass.
+    var clampRadius = spread * 0.75;
+    nodes.forEach(function (n) {
+      var r = Math.sqrt(n.x * n.x + n.y * n.y);
+      if (r > clampRadius) {
+        var f = clampRadius / r;
+        n.x *= f;
+        n.y *= f;
+      }
+    });
+
+    nodes.forEach(function (n) {
+      n.anchorX = n.x;
+      n.anchorY = n.y;
+      n.anchorZ = 0;
+      n.vx = 0;
+      n.vy = 0;
+      n.vz = 0;
+    });
+    edges.forEach(function (e) {
+      var a = graphCache.nodeById[e.source];
+      var b = graphCache.nodeById[e.target];
+      if (a && b) {
+        var rdx = a.anchorX - b.anchorX;
+        var rdy = a.anchorY - b.anchorY;
+        e.restLength = Math.sqrt(rdx * rdx + rdy * rdy) || 0.1;
+      }
+    });
+
+    graphCache.positions = nodes;
+    graphCache.boundingRadius = clampRadius;
+  }
+
+  var GRAPH_FLOWER_MIN_RADIUS = 24;
+  var GRAPH_FLOWER_PADDING = 6;
+  var GRAPH_FLOWER_MACRO_PADDING = 24;
+  var GRAPH_FLOWER_COLLISION_STRENGTH = 4;
+  var GRAPH_FLOWER_CONTAINER_FACTOR = 0.6; // overall layout bounded to spread * this — the "2D sphere" boundary
+  var GRAPH_FLOWER_WALL_STRENGTH = 0.3;
+
+  // Tag-based "flower" layout: each primary-tag cluster is packed into its
+  // own tight circle (micro layout), then those circles are packed near
+  // each other as if they were single large particles — closer when their
+  // members cross-link a lot (macro layout). Reuses the same force-sim
+  // shape as layoutGraphFR2D, just run twice at two different scales.
+  function assignGraphClusters(nodes) {
+    var tagCounts = {};
+    nodes.forEach(function (n) {
+      (n.tags || []).forEach(function (t) { tagCounts[t] = (tagCounts[t] || 0) + 1; });
+    });
+
+    var clusters = {};
+    nodes.forEach(function (n) {
+      var candidates = (n.tags || []).filter(function (t) { return tagCounts[t] >= GRAPH_MIN_CLUSTER_SIZE; });
+      var best = null;
+      var bestCount = -1;
+      candidates.forEach(function (t) {
+        if (tagCounts[t] > bestCount) { bestCount = tagCounts[t]; best = t; }
+      });
+      n.clusterKey = best || 'misc';
+      if (!clusters[n.clusterKey]) clusters[n.clusterKey] = [];
+      clusters[n.clusterKey].push(n);
+    });
+
+    // A tag's global doc count can clear GRAPH_MIN_CLUSTER_SIZE while most
+    // of its docs still prefer a different, more common tag as primary —
+    // leaving this tag's actual cluster too small. Demote any such
+    // undersized cluster into "misc" so the size guarantee holds on the
+    // real, final grouping, not just the candidate tag's global count.
+    Object.keys(clusters).forEach(function (key) {
+      if (key === 'misc' || clusters[key].length >= GRAPH_MIN_CLUSTER_SIZE) return;
+      if (!clusters.misc) clusters.misc = [];
+      clusters[key].forEach(function (n) {
+        n.clusterKey = 'misc';
+        clusters.misc.push(n);
+      });
+      delete clusters[key];
+    });
+
+    return clusters;
+  }
+
+  function layoutGraphFlowers(nodes, edges) {
+    var width = window.innerWidth;
+    var height = window.innerHeight - 60;
+    var spread = Math.min(width, height);
+    var containerRadius = spread * GRAPH_FLOWER_CONTAINER_FACTOR;
+
+    var clusterMap = assignGraphClusters(nodes);
+    var clusterKeys = Object.keys(clusterMap);
+    var clusters = clusterKeys.map(function (key) {
+      var members = clusterMap[key];
+      var avgNodeRadius = members.reduce(function (s, n) { return s + (1.5 + n.degree / 10); }, 0) / members.length;
+      var circumferenceNeeded = members.length * (avgNodeRadius * 2 + GRAPH_FLOWER_PADDING);
+      var radius = Math.max(GRAPH_FLOWER_MIN_RADIUS, circumferenceNeeded / (2 * Math.PI));
+      return {
+        key: key,
+        members: members,
+        radius: radius,
+        cx: (Math.random() - 0.5) * spread,
+        cy: (Math.random() - 0.5) * spread,
+        vx: 0,
+        vy: 0
+      };
+    });
+    var clusterByKey = {};
+    clusters.forEach(function (c) { clusterByKey[c.key] = c; });
+
+    // Tally cross-cluster edge counts: how strongly two flowers should
+    // attract each other is driven by how many links cross between them.
+    var crossCounts = {};
+    edges.forEach(function (e) {
+      var a = graphCache.nodeById[e.source];
+      var b = graphCache.nodeById[e.target];
+      if (!a || !b || a.clusterKey === b.clusterKey) return;
+      var pairKey = [a.clusterKey, b.clusterKey].sort().join('|');
+      crossCounts[pairKey] = (crossCounts[pairKey] || 0) + 1;
+    });
+
+    var k = Math.sqrt(width * height / clusters.length) * 0.5;
+    var iterations = 250;
+    var temperature = Math.sqrt(width * width + height * height) / 10;
+
+    for (var iter = 0; iter < iterations; iter++) {
+      clusters.forEach(function (c) { c.fx = 0; c.fy = 0; });
+
+      // Soft circular containment wall: once a cluster's own circle would
+      // poke past containerRadius, push it back proportional to the
+      // overshoot — a spring, not a hard clamp, so it settles smoothly
+      // alongside the other forces instead of fighting the integrator.
+      clusters.forEach(function (c) {
+        var wallDist = Math.sqrt(c.cx * c.cx + c.cy * c.cy) || 0.1;
+        var maxDist = Math.max(0, containerRadius - c.radius);
+        if (wallDist > maxDist) {
+          var wallForce = (wallDist - maxDist) * GRAPH_FLOWER_WALL_STRENGTH;
+          c.fx -= (c.cx / wallDist) * wallForce;
+          c.fy -= (c.cy / wallDist) * wallForce;
+        }
+      });
+
+      for (var i = 0; i < clusters.length; i++) {
+        for (var j = i + 1; j < clusters.length; j++) {
+          var a = clusters[i];
+          var b = clusters[j];
+          var dx = a.cx - b.cx;
+          var dy = a.cy - b.cy;
+          var dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
+          var repel = (k * k) / (dist + 0.1);
+
+          var minDist = a.radius + b.radius + GRAPH_FLOWER_MACRO_PADDING;
+          var collide = dist < minDist ? (minDist - dist) * GRAPH_FLOWER_COLLISION_STRENGTH : 0;
+          var push = repel + collide;
+
+          a.fx += (dx / dist) * push;
+          a.fy += (dy / dist) * push;
+          b.fx -= (dx / dist) * push;
+          b.fy -= (dy / dist) * push;
+        }
+      }
+
+      Object.keys(crossCounts).forEach(function (pairKey) {
+        var parts = pairKey.split('|');
+        var a = clusterByKey[parts[0]];
+        var b = clusterByKey[parts[1]];
+        var dx = a.cx - b.cx;
+        var dy = a.cy - b.cy;
+        var dist = Math.sqrt(dx * dx + dy * dy) || 0.1;
+        // sqrt, not the raw count: a few heavily cross-linked tag pairs
+        // (up to 35 shared links in the real data) would otherwise pull
+        // hard enough to overwhelm repulsion/collision and overlap.
+        var attract = Math.sqrt(crossCounts[pairKey]) * (dist * dist) / (k * 1.8);
+        a.fx -= (dx / dist) * attract;
+        a.fy -= (dy / dist) * attract;
+        b.fx += (dx / dist) * attract;
+        b.fy += (dy / dist) * attract;
+      });
+
+      var centerGrav = 0.02;
+      clusters.forEach(function (c) {
+        c.fx -= c.cx * centerGrav;
+        c.fy -= c.cy * centerGrav;
+      });
+
+      clusters.forEach(function (c) {
+        c.vx = (c.vx + c.fx) * 0.9;
+        c.vy = (c.vy + c.fy) * 0.9;
+        var speed = Math.sqrt(c.vx * c.vx + c.vy * c.vy);
+        if (speed > temperature) {
+          c.vx = (c.vx / speed) * temperature;
+          c.vy = (c.vy / speed) * temperature;
+        }
+        c.cx += c.vx;
+        c.cy += c.vy;
+      });
+
+      temperature *= 0.995;
+    }
+
+    // Hard backstop matching the same containerRadius the soft wall force
+    // targets above — guarantees the circular boundary holds exactly even
+    // if the spring hasn't fully settled after iterations run out.
+    clusters.forEach(function (c) {
+      var r = Math.sqrt(c.cx * c.cx + c.cy * c.cy);
+      var maxDist = Math.max(0, containerRadius - c.radius);
+      if (r > maxDist && r > 0.0001) {
+        var f = maxDist / r;
+        c.cx *= f;
+        c.cy *= f;
+      }
+    });
+
+    clusters.forEach(function (c) {
+      c.members.forEach(function (n, i) {
+        var angle = (i / c.members.length) * Math.PI * 2;
+        n.x = c.cx + c.radius * Math.cos(angle);
+        n.y = c.cy + c.radius * Math.sin(angle);
+        n.z = 0;
+      });
+    });
+
+    nodes.forEach(function (n) {
+      n.anchorX = n.x;
+      n.anchorY = n.y;
+      n.anchorZ = 0;
+      n.vx = 0;
+      n.vy = 0;
+      n.vz = 0;
+    });
+    edges.forEach(function (e) {
+      var a = graphCache.nodeById[e.source];
+      var b = graphCache.nodeById[e.target];
+      if (a && b) {
+        var rdx = a.anchorX - b.anchorX;
+        var rdy = a.anchorY - b.anchorY;
+        e.restLength = Math.sqrt(rdx * rdx + rdy * rdy) || 0.1;
+      }
+    });
+
+    graphCache.positions = nodes;
+    graphCache.boundingRadius = containerRadius;
+  }
+
   var graphView = {
     canvas: null,
     ctx: null,
     width: 0,
     height: 0,
-    rotationX: -0.25,
+    rotationX: GRAPH_FLAT_2D_MODE ? 0 : -0.25,
     rotationY: 0,
     hoveredId: null,
     lastProjected: [],
@@ -603,14 +948,33 @@
   }
 
   function projectGraphNodes() {
+    var centerX = graphView.width / 2;
+    var centerY = graphView.height / 2;
+
+    if (GRAPH_FLAT_2D_MODE) {
+      var t = performance.now();
+      return graphCache.nodes.map(function (n) {
+        var baseRadius = 1.5 + (n.degree / 10);
+        var isDraggedOrHovered = n.id === graphView.hoveredId || (graphDragNode && n.id === graphDragNode.id);
+        var wobbleX = isDraggedOrHovered ? 0 : Math.sin(t * n.wobbleSpeed + n.wobblePhaseX) * GRAPH_WOBBLE_AMPLITUDE;
+        var wobbleY = isDraggedOrHovered ? 0 : Math.cos(t * n.wobbleSpeed * 1.3 + n.wobblePhaseY) * GRAPH_WOBBLE_AMPLITUDE;
+        return {
+          node: n,
+          sx: centerX + (n.x + wobbleX) * zoomScale,
+          sy: centerY + (n.y + wobbleY) * zoomScale,
+          z: 0,
+          depthT: 1,
+          radius: baseRadius * zoomScale
+        };
+      });
+    }
+
     var cameraDistance = graphCache.boundingRadius * 2.2;
     var focalLength = cameraDistance;
     var cosY = Math.cos(graphView.rotationY);
     var sinY = Math.sin(graphView.rotationY);
     var cosX = Math.cos(graphView.rotationX);
     var sinX = Math.sin(graphView.rotationX);
-    var centerX = graphView.width / 2;
-    var centerY = graphView.height / 2;
     var R = graphCache.boundingRadius || 1;
 
     return graphCache.nodes.map(function (n) {
@@ -622,7 +986,7 @@
 
       var scale = focalLength / (cameraDistance - z2);
       var depthT = Math.max(0, Math.min(1, (z2 + R) / (2 * R)));
-      var baseRadius = 3 + (n.degree / 5);
+      var baseRadius = 1.5 + (n.degree / 10);
 
       return {
         node: n,
@@ -697,14 +1061,22 @@
         ctx.fillStyle = GRAPH_COLOR_ACTIVE;
         ctx.globalAlpha = 1;
         hoveredP = p;
+        ctx.fill();
       } else if (hoveredId && !isNeighbor) {
-        ctx.fillStyle = GRAPH_COLOR_FADED;
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = GRAPH_COLOR_FADED;
+        ctx.lineWidth = 1;
         ctx.globalAlpha = 0.35;
+        ctx.fill();
+        ctx.stroke();
       } else {
-        ctx.fillStyle = GRAPH_COLOR_BASE;
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = GRAPH_COLOR_NODE_OUTLINE;
+        ctx.lineWidth = 1.2;
         ctx.globalAlpha = 0.35 + 0.65 * p.depthT;
+        ctx.fill();
+        ctx.stroke();
       }
-      ctx.fill();
     });
 
     if (hoveredP) {
@@ -744,7 +1116,13 @@
   function renderGraph() {
     buildGraphData();
     if (!graphCache.positions) {
-      layoutGraphFR(graphCache.nodes, graphCache.edges);
+      if (GRAPH_FLAT_2D_MODE && GRAPH_FLOWER_LAYOUT_MODE) {
+        layoutGraphFlowers(graphCache.nodes, graphCache.edges);
+      } else if (GRAPH_FLAT_2D_MODE) {
+        layoutGraphFR2D(graphCache.nodes, graphCache.edges);
+      } else {
+        layoutGraphFR(graphCache.nodes, graphCache.edges);
+      }
     }
 
     var canvas = el('rw-graph-canvas');
@@ -787,6 +1165,7 @@
   var graphInteractionsWired = false;
   var GRAPH_AUTO_ROTATE_SPEED = 0.0018;
   var GRAPH_AUTO_ROTATE_IDLE_MS = 700;
+  var GRAPH_AUTO_ROTATE_ENABLED = true;
   var GRAPH_SPRING_ANCHOR_K = 0.12;
   var GRAPH_SPRING_EDGE_K = 0.05;
   var GRAPH_SPRING_DAMPING = 0.78;
@@ -876,10 +1255,11 @@
           startWorldX: node.x,
           startWorldY: node.y,
           startWorldZ: node.z,
-          combinedScale: hitP ? hitP.radius / (3 + node.degree / 5) : 1,
+          combinedScale: hitP ? hitP.radius / (1.5 + node.degree / 10) : 1,
           moved: false
         };
-      } else {
+        graphView.canvas.classList.add('panning');
+      } else if (!GRAPH_FLAT_2D_MODE) {
         graphDrag = {
           startX: e.clientX,
           startY: e.clientY,
@@ -887,8 +1267,8 @@
           startRotationY: graphView.rotationY,
           moved: false
         };
+        graphView.canvas.classList.add('panning');
       }
-      graphView.canvas.classList.add('panning');
     });
 
     document.addEventListener('mousemove', function (e) {
@@ -950,6 +1330,25 @@
         lastGraphInteraction = performance.now();
         if (!graphDragNode.moved) {
           openArticle(graphDragNode.id, true);
+        } else {
+          // Re-anchor to the dropped position (and refresh its edges'
+          // rest lengths) instead of leaving the stale pre-drag anchor in
+          // place — otherwise tickGraphSprings keeps pulling the node,
+          // and the neighbors it's connected to, back toward where it
+          // used to be once the drag ends.
+          var droppedNode = graphCache.nodeById[graphDragNode.id];
+          droppedNode.anchorX = droppedNode.x;
+          droppedNode.anchorY = droppedNode.y;
+          droppedNode.anchorZ = droppedNode.z;
+          graphCache.edges.forEach(function (e) {
+            if (e.source !== droppedNode.id && e.target !== droppedNode.id) return;
+            var a = graphCache.nodeById[e.source];
+            var b = graphCache.nodeById[e.target];
+            var dx = a.anchorX - b.anchorX;
+            var dy = a.anchorY - b.anchorY;
+            var dz = a.anchorZ - b.anchorZ;
+            e.restLength = Math.sqrt(dx * dx + dy * dy + dz * dz) || 0.1;
+          });
         }
         graphDragNode = null;
         if (graphView.canvas) graphView.canvas.classList.remove('panning');
@@ -989,9 +1388,16 @@
       }
     }
 
-    if (app.dataset.screen === 'graph' && !graphDrag && !graphDragNode &&
+    if (!GRAPH_FLAT_2D_MODE && GRAPH_AUTO_ROTATE_ENABLED && app.dataset.screen === 'graph' && !graphDrag && !graphDragNode &&
       (now - lastGraphInteraction) > GRAPH_AUTO_ROTATE_IDLE_MS) {
       graphView.rotationY += GRAPH_AUTO_ROTATE_SPEED;
+      needsRedraw = true;
+    }
+
+    // Flat mode keeps redrawing every frame regardless of physics/drag
+    // state, since the ambient node wobble (projectGraphNodes) animates
+    // continuously rather than only while something else is moving.
+    if (GRAPH_FLAT_2D_MODE && app.dataset.screen === 'graph') {
       needsRedraw = true;
     }
 
