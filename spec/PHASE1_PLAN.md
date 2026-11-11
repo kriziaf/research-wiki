@@ -354,3 +354,9 @@ A full session of iteration on the Graph View, each step tested live in a browse
 
 Files touched: `research.js`.
 
+## v0.10.1 — Fixed 800×500 Graph Canvas (2026-11-11)
+
+Graph View previously sized its canvas (and every layout's force-sim math) to the full viewport (`window.innerWidth` / `window.innerHeight - 60`). Constrained it to a fixed `GRAPH_CANVAS_WIDTH=800` / `GRAPH_CANVAS_HEIGHT=500` instead, used consistently by all three layout functions (`layoutGraphFR`, `layoutGraphFR2D`, `layoutGraphFlowers`) and the canvas-sizing code in `renderGraph`, so the force-sim spread/k values stay matched to what's actually rendered rather than being tuned for a much larger area. `research.css`: `#rw-graph-canvas` switched from `flex:1; width:100%; height:100%` (full-bleed) to `align-self:center` with a fixed size coming from its JS-set inline style, so it reads as a bounded box centered below the subbar instead of filling the screen.
+
+Files touched: `research.js`, `research.css`.
+

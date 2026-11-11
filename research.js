@@ -8,7 +8,7 @@
 (function () {
   // Single source of truth for the footer's "Smol Wiki Chat vX.Y.Z" label.
   // Bump this when spec/PHASE1_PLAN.md records a new version — nothing else to touch.
-  var APP_VERSION = '0.10.0';
+  var APP_VERSION = '0.10.1';
 
   var DOCS = window.WIKI_INDEX || [];
   var titleIndex = {};
@@ -404,6 +404,8 @@
 
   var graphCache = { nodes: null, edges: null, positions: null };
 
+  var GRAPH_CANVAS_WIDTH = 800;
+  var GRAPH_CANVAS_HEIGHT = 500;
   var GRAPH_COLOR_BASE = '#58544e';
   var GRAPH_COLOR_NODE_OUTLINE = '#b0aba3';
   var GRAPH_COLOR_ACTIVE = '#7b68ee';
@@ -449,8 +451,8 @@
   }
 
   function layoutGraphFR(nodes, edges) {
-    var width = window.innerWidth;
-    var height = window.innerHeight - 60;
+    var width = GRAPH_CANVAS_WIDTH;
+    var height = GRAPH_CANVAS_HEIGHT;
     var spread = Math.min(width, height);
 
     nodes.forEach(function (n) {
@@ -593,8 +595,8 @@
   // tools — which is what produces a tightly tiled, gap-free disc instead
   // of the sparse/ring-like result you get from flattening a 3D sphere.
   function layoutGraphFR2D(nodes, edges) {
-    var width = window.innerWidth;
-    var height = window.innerHeight - 60;
+    var width = GRAPH_CANVAS_WIDTH;
+    var height = GRAPH_CANVAS_HEIGHT;
     var spread = Math.min(width, height);
 
     nodes.forEach(function (n) {
@@ -755,8 +757,8 @@
   }
 
   function layoutGraphFlowers(nodes, edges) {
-    var width = window.innerWidth;
-    var height = window.innerHeight - 60;
+    var width = GRAPH_CANVAS_WIDTH;
+    var height = GRAPH_CANVAS_HEIGHT;
     var spread = Math.min(width, height);
     var containerRadius = spread * GRAPH_FLOWER_CONTAINER_FACTOR;
 
@@ -1126,8 +1128,8 @@
     }
 
     var canvas = el('rw-graph-canvas');
-    var width = window.innerWidth;
-    var height = window.innerHeight - 60;
+    var width = GRAPH_CANVAS_WIDTH;
+    var height = GRAPH_CANVAS_HEIGHT;
     var dpr = window.devicePixelRatio || 1;
 
     canvas.width = width * dpr;
