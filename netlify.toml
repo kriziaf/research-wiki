@@ -1,0 +1,5 @@
+# Static site: no build step. Netlify deploys the repo root on every push to
+# the production branch (main), as configured in the project's Git settings.
+[build]
+  publish = "."
+  command = ""
